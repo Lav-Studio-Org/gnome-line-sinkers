@@ -12,7 +12,7 @@
   const TIER_COL = ['var(--paper-3)', 'var(--sea)', 'var(--pearl)', 'var(--gold)', 'var(--accent)'];
   const TIER_HEX = ['#cdb995', '#8fd3e8', '#b8a8ff', '#f5b82e', '#ff6b3d'];
   // public address of the game, for share texts (empty until it is hosted)
-  const SHARE_URL = '';
+  const SHARE_URL = 'https://gnome.assamimuzaki.work/';
 
   const fishVar = (mut, sp) => (mut === 1 ? 'gold' : mut === 2 ? 'prism2' : sp && sp.shadow ? 'shadow' : '');
   const inl = (name, acc) => ic(name).replace('class="ic"', `class="ic" style="display:inline;width:1em;height:1em;vertical-align:-2px;--acc:${acc}"`);
@@ -299,7 +299,7 @@
       // footer band
       x.fillStyle = INK; x.fillRect(0, H - 84, W, 84);
       x.fillStyle = PAPER; x.font = font(30); x.textBaseline = 'middle';
-      x.fillText(`${t('shareFoot')} · Lav Studio`, 56, H - 42);
+      x.fillText(`${t('shareFoot')}: gnome.assamimuzaki.work`, 56, H - 42);
       x.fillStyle = '#f5b82e';
       const ig = '@lavstudioofficial';
       x.fillText(ig, W - 56 - x.measureText(ig).width, H - 42);

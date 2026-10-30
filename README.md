@@ -19,6 +19,8 @@ Plain HTML + JS, no build step, no dependencies, works offline.
 
 ## Play
 
+Live: https://gnome.assamimuzaki.work/
+
 ```sh
 python3 -m http.server 8124
 # open http://localhost:8124/
