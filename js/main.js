@@ -372,7 +372,7 @@
 
     hudT -= dt;
     if (hudT <= 0) { hudT = 0.12; UI.hud(); }
-    if (now - g.lastSave > 5000) { g.lastSave = now; if (g.mode !== 'cast') g.achCheck(); g.persist(); }
+    if (now - g.lastSave > 5000) { g.lastSave = now; if (g.mode !== 'cast') g.achCheck(); g.persist(); if (KL.Global) KL.Global.tick(g.save); }
     requestAnimationFrame(loop);
   }
 

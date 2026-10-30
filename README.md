@@ -63,6 +63,7 @@ The start menu has Continue / New game, **Save to file** (downloads a `.json` sa
 | `js/render.js` | canvas renderer |
 | `js/ui.js`, `js/main.js` | interface and game flow |
 | `js/trophies.js` | achievements, activity, share card, outfit and boat shop |
+| `js/global.js`, `server/` | global counter (players and fish caught by everyone), Cloudflare Worker + D1 |
 | `js/audio.js` | music, ambience and SFX (Web Audio) |
 | `img/atlas.png`, `js/atlas.js` | sprite sheet, built by `tools/build_atlas.py` from `Assets/` |
 | `docs/DESIGN.md` | research and design decisions |

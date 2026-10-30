@@ -360,3 +360,11 @@ body.port { --u: clamp(9px, 3.3vw, 14px); --tap: max(44px, calc(var(--u) * 3.5))
 .port .share-side { max-width: none; }
 .set-wrap { flex-wrap: wrap; }
 .port .rail-btn:not(.on) small { display: none; }
+
+/* the whole sea (global counter) */
+.stat-global { grid-column: 1 / -1; background: var(--night-2); color: var(--paper); border: var(--line); border-radius: var(--r); box-shadow: var(--shadow);
+  padding: 10px 12px; display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px 14px; --acc: var(--sea); }
+.stat-global > b { grid-column: 1 / -1; display: flex; gap: 8px; align-items: center; font-weight: 600; }
+.stat-global small { display: block; color: var(--paper-3); font-size: .8em; }
+.stat-global span { font-size: 1.3em; font-weight: 600; font-variant-numeric: tabular-nums; }
+.stat-global p { grid-column: 1 / -1; color: var(--paper-3); font-size: .8em; }
