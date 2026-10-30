@@ -199,11 +199,13 @@ cleaner lines.
 - **Readable cost.** A rope pill next to the catch counter shows the line left while going down
   and turns red at 20%. The orange marker on the depth gauge moves up as you spend line: it is
   the deepest point still in reach going straight down.
-- **Fair numbers.** Sideways metres cost 1 metre of line each; Smooth Steering (and the Diver
-  outfit, Longtail boat) cut that by 10% per 20% steering, to half at most. Going up inside the
+- **Fair numbers.** Dragging the line sideways through the water costs 3 m of line per metre
+  (a first pass at 1:1 was too cheap: swerving back and forth barely showed on the meter);
+  Smooth Steering (and the Diver outfit, Longtail boat) cut that by 10% per 20% steering, down
+  to 1.5 m. Wiggling the stick hard left and right now ends a 150 m line at about 55 m deep. Going up inside the
   down phase (pulling up, a vent's lift) does not refund line.
 - **Free Fall** still drops straight down, so its share of the line is never wasted.
 - **Bot.** It now weighs side moves by how much line is left (cheap early, expensive near the
-  end), so the Auto Angler and the balance sim play the same trade. It loses about 2-3% of its
+  end), so the Auto Angler and the balance sim play the same trade. It loses about 5-15% of its
   line to swerves and currents; a human steering by hand loses more, which the TIER refit keeps
   out of the pacing targets.

@@ -65,6 +65,7 @@
       <symbol id="i-wave" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M2.5 9c2-2 4-2 6 0s4 2 6 0 4-2 6.5 0"/><path d="M2.5 15c2-2 4-2 6 0s4 2 6 0 4-2 6.5 0"/></g></symbol>
       <symbol id="i-home" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11L12 4l8.5 7" /><path d="M6 9.5V20h12V9.5" style="fill:var(--acc)"/><path d="M10 20v-5h4v5"/></g></symbol>
       <symbol id="i-upload" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="13" width="17" height="7.5" rx="2" style="fill:var(--acc)"/><path d="M12 15.5V3.5M7.5 8L12 3.5 16.5 8"/></g></symbol>
+      <symbol id="i-refresh" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7.5" style="fill:var(--acc)" stroke="none"/><path d="M19.5 12A7.5 7.5 0 1 1 17.3 6.7"/><path d="M19.5 3.5v4.2h-4.2"/></g></symbol>
       <symbol id="i-download" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="13" width="17" height="7.5" rx="2" style="fill:var(--acc)"/><path d="M12 3.5v12M7.5 11l4.5 4.5 4.5-4.5"/></g></symbol>
       <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15l12.5-7.5z" style="fill:var(--acc)" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
       <symbol id="i-trophy" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3.5h10v6a5 5 0 0 1-10 0z" style="fill:var(--acc)"/><path d="M7 5.5H3.5v1.5A3.5 3.5 0 0 0 7.5 10.5M17 5.5h3.5v1.5a3.5 3.5 0 0 1-4 3.5M12 14.5v3.5M8 20.5h8M9.5 18h5"/></g></symbol>
@@ -94,9 +95,13 @@
           <button class="btn" id="menuImport"><svg class="ic"><use href="#i-upload"/></svg><span data-t="menuImport">Muat file</span></button>
           <button class="btn" id="menuExport"><svg class="ic"><use href="#i-download"/></svg><span data-t="menuExport">Simpan file</span></button>
         </div>
-        <button class="btn" id="menuCredits"><svg class="ic"><use href="#i-star"/></svg><span data-t="menuCredits">Kredit</span></button>
+        <div class="row2">
+          <button class="btn" id="menuCredits"><svg class="ic"><use href="#i-star"/></svg><span data-t="menuCredits">Kredit</span></button>
+          <button class="btn" id="menuRefresh"><svg class="ic"><use href="#i-refresh"/></svg><span data-t="menuRefresh">Perbarui game</span></button>
+        </div>
+        <p class="menu-update hidden" id="menuUpdate"></p>
       </div>
-      <p class="menu-foot">v1.4 · Lav Studio</p>
+      <p class="menu-foot" id="menuFoot">Lav Studio</p>
       <input type="file" id="importFile" accept=".sav" hidden>
     </div>
     <div class="menu-global hidden" id="menuGlobal" aria-live="polite"></div>
@@ -112,7 +117,7 @@
     <div class="sub" id="penRate"></div>
   </div>
   <div id="hudRight" class="hud-right">
-    <button class="btn icon" id="menuBtn" aria-label="Menu"><svg class="ic"><use href="#i-home"/></svg></button>
+    <button class="btn icon" id="menuBtn" aria-label="Menu"><svg class="ic"><use href="#i-home"/></svg><i class="badge hidden" id="menuBadge"></i></button>
     <button class="btn icon" id="trophyBtn" aria-label="Trofi"><svg class="ic"><use href="#i-trophy"/></svg><i class="badge hidden" id="trophyBadge"></i></button>
     <button class="btn icon" id="shopBtn" aria-label="Toko"><svg class="ic"><use href="#i-boat"/></svg><i class="badge hidden" id="shopBadge"></i></button>
     <button class="btn icon" id="bookBtn" aria-label="Buku ikan"><svg class="ic"><use href="#i-book"/></svg></button>
@@ -201,6 +206,7 @@
   <script src="js/ui.js"></script>
   <script src="js/trophies.js"></script>
   <script src="js/global.js"></script>
+  <script src="js/update.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

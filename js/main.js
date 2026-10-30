@@ -444,6 +444,12 @@
     UI.setMode('dock');
     UI.hud();
     UI.openMenu();
+    KL.Update.onOutdated = (v) => {
+      if (UI.menuOpen) UI.updateNotice();
+      document.getElementById('menuBadge').classList.remove('hidden');
+      if (!UI.menuOpen) UI.toast(null, t('updateNew') + ' (v' + v + ')', t('updateHow'));
+    };
+    KL.Update.start();
     E.markDay(g.save, new Date().toLocaleDateString('sv'), Date.now());
     E.checkAch(g.save);
     if (g.save.seenAch == null) g.save.seenAch = 0;

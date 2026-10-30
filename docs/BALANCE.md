@@ -33,8 +33,8 @@ cast. The sim plays it the same way (`E.carryOver`).
 `TIER = [43, 620, 6.3e5, 1.4e8, 7e9, 3.5e11]`; zones at 0.6 / 10.5 / 17.9 / 39 / 75 min.
 
 Refitted when the line became a length (side moves and current drift pay it out, see
-DESIGN.md section 13): `TIER = [43, 510, 6.2e5, 2.5e8, 1.3e10, 6.5e11]`; zones at
-0.6 / 9.4 / 19.7 / 36.7 / 92.7 min. The bot spends 2-3% of its line sideways.
+DESIGN.md section 13). With side moves at 3 m of line per metre:
+`TIER = [17, 630, 7.8e5, 1.7e8, 8.5e9, 4.3e11]`; zones at 0.8 / 8.7 / 17.7 / 38 / 79 min.
 
 ## Shells (outfits and boats)
 

@@ -98,8 +98,9 @@
       reel: Math.min(95, (7 + line * 0.07) * (1 + sumFx(s, 'reel'))),
       steer: 32 * (1 + sumFx(s, 'steer')),
       fall: Math.min(0.7, sumFx(s, 'fall')),
-      // line used per metre of sideways travel; Smooth Steering makes side moves cheaper
-      side: Math.max(0.5, 1 - 0.5 * sumFx(s, 'steer')),
+      // line used per metre of sideways travel: dragging the line through the water costs 3x a
+      // straight drop; Smooth Steering makes side moves cheaper, down to 1.5x
+      side: 3 * Math.max(0.5, 1 - 0.5 * sumFx(s, 'steer')),
       guard: sumFx(s, 'guard'),
       song: sumFx(s, 'song'),
       slow: sumFx(s, 'slow'),

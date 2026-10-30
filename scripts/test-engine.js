@@ -79,7 +79,7 @@ test('the first casts never come back empty', () => {
 
 test('guard passes through a fish', () => {
   const s = E.newSave();
-  s.nodes.reel1 = 1; s.nodes.guard = 1;
+  s.nodes.reel1 = 1; s.nodes.guard = 1; s.nodes.line1 = 5; // enough line to swerve over to the fish
   const run = E.newRun(s, { seed: 2, width: 100 });
   assert.strictEqual(run.guard, 1);
   const f = run.fish.find((x) => x.y > 6);
@@ -270,6 +270,13 @@ test('line is a length: side moves pay it out and the hook turns when it is gone
   assert(Math.abs(straight.paid - straight.st.line) < 0.01 && Math.abs(zig.paid - zig.st.line) < 0.01, 'all line paid out');
   assert(straight.maxY > straight.st.line - 1, 'straight drop reaches the full length');
   assert(zig.maxY < straight.maxY * 0.8, 'zigzag should end shallower, got ' + zig.maxY.toFixed(1));
+});
+
+test('version.json matches the version in js/update.js', () => {
+  const fs = require('fs'), path = require('path');
+  const v = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'version.json'), 'utf8')).v;
+  const js = fs.readFileSync(path.join(__dirname, '..', 'js', 'update.js'), 'utf8').match(/const VERSION = '([^']+)'/)[1];
+  assert.strictEqual(v, js, 'bump both together');
 });
 
 test('save codec round-trips and rejects edited or plain saves', () => {

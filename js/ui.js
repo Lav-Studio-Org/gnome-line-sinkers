@@ -39,6 +39,13 @@
       $('menuImport').onclick = () => { KL.Audio.click(); $('importFile').click(); };
       $('importFile').onchange = (e) => { const f = e.target.files[0]; e.target.value = ''; if (f) this.g.importFile(f); };
       $('menuCredits').onclick = () => { KL.Audio.click(); this.credits(); };
+      $('menuRefresh').onclick = () => {
+        KL.Audio.click();
+        this.modal(t('menuRefresh'), `<p>${t('refreshNote')}</p>`, [
+          { label: t('back'), fn: () => {} },
+          { label: t('menuRefresh'), cls: 'grow', icon: 'refresh', fn: () => { this.g.persist(); this.toast(null, t('menuRefresh'), t('refreshing')); KL.Update.refresh(); } },
+        ]);
+      };
       $('scrim').onclick = () => { if (this.open === 'settings') this.closeSheet('settings'); };
       this.initTreeInput();
       const rot = document.createElement('div');
@@ -510,6 +517,7 @@
       this.closeSheet('settings');
       if (this.open === 'tree' || this.open === 'book') this.closeScreens();
       const s = this.g.save;
+      this.updateNotice();
       $('menuGnome').src = KL.Render.url('gnome', '');
       $('menuPlayLabel').textContent = t(this.hasProgress() ? 'menuContinue' : 'menuStart');
       $('menuNew').classList.toggle('hidden', !this.hasProgress());
@@ -528,6 +536,13 @@
       this.setMode(this.g.mode === 'haul' ? 'haul' : 'dock');
       KL.Audio.unlock && KL.Audio.unlock();
       this.g.onMenuClosed();
+    },
+    updateNotice() {
+      const U = KL.Update;
+      $('menuFoot').textContent = `v${KL.VERSION} · Lav Studio`;
+      $('menuUpdate').classList.toggle('hidden', !U.outdated);
+      if (U.outdated) $('menuUpdate').textContent = t('updateMenu', { v: U.latest });
+      $('menuRefresh').classList.toggle('btn-good', U.outdated);
     },
     credits() {
       const link = (u, l) => `<a href="${u}" target="_blank" rel="noopener">${l}</a>`;

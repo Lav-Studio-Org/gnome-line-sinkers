@@ -25,3 +25,6 @@ ship to the Play Store as a web payload, so mobile first, portrait and landscape
   they are drawn once, not every frame. Fonts in `style.css` are subset to the characters the UI uses:
   re-subset if you add copy with new non-ASCII characters, then run `python3 tools/fix_digits.py style.css`
   (redraws 2, 5 and 7, which read as S shapes in Pixelify Sans).
+- Release: bump `VERSION` in `js/update.js` and `version.json` together (a test checks). Players on an
+  older version get a notice and a menu button (Update game) that re-downloads every file past the
+  browser cache and reloads; the save is never touched.
