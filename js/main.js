@@ -1,0 +1,391 @@
+// Game loop, input, save/load and the flow between dock -> cast -> haul.
+(function (root) {
+  'use strict';
+  const KL = root.KL;
+  const E = KL.Engine, R = KL.Render, UI = KL.UI, A = KL.Audio, Bot = KL.Bot;
+  const { SPECIES, MUTATIONS, ZONES } = E.DATA;
+  const KEY = 'kail.save.v1'; // kept from the working title so existing progress survives the rename
+  const t = (k, v) => KL.t(k, v);
+
+  function load() {
+    try { const raw = localStorage.getItem(KEY); if (raw) return E.migrate(JSON.parse(raw)); } catch (e) { /* fresh start */ }
+    return E.newSave();
+  }
+
+  const g = {
+    save: load(), stats: null, mode: 'dock', run: null, preview: null, haul: null,
+    pondRate: 0, moon: false, sonar: false, cat: false, safeL: 0,
+    target: null, manualT: 0, throw: null, lastX: null, pointer: { on: false, id: null, sx: 0, sy: 0 }, welcomed: false, keys: new Set(), lastSave: 0, autoT: 0, rateT: 0, landed: 0,
+    zoneSeen: 0,
+
+    refresh() {
+      this.stats = E.stats(this.save);
+      this.pondRate = E.pondRate(this.save);
+      this.sonar = this.stats.sonar;
+      this.cat = E.lv(this.save, 'cat') > 0;
+    },
+    persist() {
+      this.save.lastSeen = Date.now();
+      try { localStorage.setItem(KEY, JSON.stringify(this.save)); } catch (e) { /* storage full or blocked */ }
+    },
+    applySettings() {
+      const st = this.save.settings;
+      KL.setLang(st.lang || ((navigator.language || 'en').toLowerCase().startsWith('id') ? 'id' : 'en'));
+      A.configure({ sound: st.sound, music: st.music });
+      UI.translate();
+      UI.hud();
+      this.persist();
+    },
+    // The fish you see while docked are the fish of your next cast: the preview run *is* the next run.
+    // keepSeed rebuilds the same sea after a purchase changed the stats.
+    newPreview(keepSeed) {
+      const seed = keepSeed && this.preview ? this.preview.seed : undefined;
+      this.preview = E.newRun(this.save, { width: R.worldW, seed });
+    },
+    // the haul list shows value per row before the crate/bulk bonus; keep rows consistent with the total
+    statsHaulMult(h) { return 1 + h.fullB + h.bulkB; },
+
+    // tap on the sea: the gnome throws the hook there, and the cast starts where it lands
+    cast(x) {
+      if (this.mode !== 'dock' || UI.open || UI.menuOpen) return;
+      this.refresh();
+      if (!this.preview || this.preview.width !== R.worldW) this.newPreview();
+      const w = R.worldW;
+      const tx = Math.max(2, Math.min(w - 2, x != null ? x : this.lastX != null ? this.lastX : w * 0.5 + 10));
+      this.lastX = tx;
+      this.throw = { x: tx, t: 0, dur: 0.45 };
+      this.mode = 'throw';
+      UI.setMode('cast');
+      UI.catchCount(0, this.stats.cap);
+      UI.hint('');
+      A.cast();
+    },
+    startRun() {
+      const run = this.preview;
+      this.preview = null;
+      run.x = this.throw.x;
+      this.throw = null;
+      this.run = run;
+      this.target = run.x;
+      this.pointer.on = false;
+      this.manualT = 0;
+      this.mode = 'cast';
+      this.moon = run.moon;
+      R.startLine(run);
+      R.ripple(run.x);
+      R.burst(run.x, 1, 8);
+      if (this.moon) UI.banner(t('moonNight'), '');
+      if (this.save.casts < 3) UI.hint(t('hintSteer'));
+      KL.Music.activity = 1;
+    },
+
+    onEvent(ev) {
+      const run = this.run;
+      switch (ev.t) {
+        case 'zone':
+          if (ev.z > this.save.zone && ev.z > this.zoneSeen) {
+            this.zoneSeen = ev.z;
+            A.zone();
+            UI.banner(t('newZone'), KL.name(ZONES[ev.z].name));
+          }
+          break;
+        case 'hit':
+          A.hit(); R.shake = 0.22; R.burst(run.x, run.y, 10);
+          R.text(run.x, run.y, t('hit'), '#ff9a7a');
+          this.buzz(35);
+          break;
+        case 'guard':
+          A.guard(); R.burst(run.x, run.y, 6); R.text(run.x, run.y, t('guard'), '#b8a8ff');
+          if (ev.o && ev.o.k === 'mine') R.boom(ev.o.x, ev.o.y, true);
+          break;
+        case 'sting':
+          A.hit(); R.shake = 0.18; R.burst(run.x, run.y, 6);
+          R.text(run.x, run.y, t('sting'), '#ff9a7a');
+          this.buzz(35);
+          break;
+        case 'boom':
+          A.hit(); A.bottom(); R.shake = 0.45; R.boom(ev.o.x, ev.o.y);
+          R.text(ev.o.x, ev.o.y, t('boom'), '#ff6b3d', true);
+          this.buzz(70);
+          break;
+        case 'lost':
+          A.deny(); R.text(run.x, run.y, t('lost'), '#ff9a7a');
+          UI.catchCount(run.caught.length, run.st.cap);
+          break;
+        case 'net': A.slow(); R.text(run.x, run.y, t('net'), '#e6d8bb'); break;
+        case 'current': A.bubble(); R.text(run.x, run.y, t('current') + (ev.o.v > 0 ? ' >>' : ' <<'), '#8fd3e8'); break;
+        case 'slow': A.slow(); R.text(run.x, run.y, t('slow'), '#8fd3e8'); break;
+        case 'turn':
+          if (ev.why === 'bottom') { A.bottom(); R.text(run.x, run.y, t('bottom'), '#f3ead7'); }
+          if (this.save.casts < 3) UI.hint(t('hintCatch'));
+          break;
+        case 'catch': {
+          const f = ev.f;
+          const v = E.fishValue(this.save, run.st, f) * (f.twin ? 2 : 1);
+          A.catchNote(ev.n, f.mut);
+          R.burst(f.x, f.y, f.mut >= 0 ? 10 : 4);
+          const label = f.mut >= 0 ? `${t(['mutBig', 'mutGold', 'mutPrism', 'mutTitan'][f.mut])}! +${KL.fmt(v)}` : `+${KL.fmt(v)}`;
+          R.text(f.x, f.y, f.twin ? label + ' x2' : label, f.mut >= 1 ? '#ffd257' : f.mut === 0 ? '#9ad1ff' : '#f5b82e', f.mut >= 1);
+          UI.catchCount(run.caught.length, run.st.cap);
+          this.buzz(f.mut >= 1 ? 25 : 8);
+          break;
+        }
+        case 'full': A.full(); R.text(run.x, run.y - 3, t('full'), '#ff6b3d', true); break;
+        case 'surface': this.surface(); break;
+      }
+    },
+
+    surface() {
+      const run = this.run;
+      A.surface();
+      R.ripple(run.x);
+      UI.hint('');
+      this.haul = E.haul(this.save, run);
+      this.landed = 0;
+      run.caught.forEach((f, i) => R.fly(f, run.x, 0, i * Math.max(0.025, 0.08 - run.caught.length * 0.002)));
+      this.mode = 'haul';
+      UI.setMode('haul');
+      KL.Music.activity = 0;
+      const delay = Math.min(1.2, 0.35 + run.caught.length * 0.04);
+      setTimeout(() => {
+        UI.showHaul(this.haul, (m) => this.take(m));
+        if (this.save.auto && this.stats.auto) this.autoT = 2.4;
+      }, delay * 1000);
+    },
+    onLand() { A.coin(this.landed++); },
+
+    take(mult) {
+      if (this.mode !== 'haul') return;
+      UI.hideHaul();
+      this.autoT = 0;
+      const h = this.haul;
+      const { gained, fresh } = E.settle(this.save, h, mult);
+      A.take(mult > 1 || h.items.some((i) => i.mut >= 1));
+      UI.bump('coinPill');
+      fresh.forEach((id, i) => setTimeout(() => {
+        const sp = SPECIES[E.SP[id]];
+        UI.toast(R.url(sp.sprite, sp.shadow ? 'shadow' : ''), t('newSpecies'), KL.name(sp.name));
+        A.discover();
+      }, 300 + i * 450));
+      this.mode = 'dock';
+      this.run = null;
+      this.refresh();
+      this.newPreview();
+      UI.setMode('dock');
+      UI.hud();
+      this.persist();
+      if (this.save.auto && this.stats.auto) this.autoT = 1.2;
+      return gained;
+    },
+
+    buzz(ms) { if (this.save.settings.haptics && navigator.vibrate) try { navigator.vibrate(ms); } catch (e) { /* not allowed */ } },
+    onBought() { this.refresh(); this.newPreview(true); this.persist(); },
+    onSeason(gain) {
+      this.refresh(); this.newPreview(true); this.persist();
+      UI.banner(t('season'), `+${gain} ${t('pearls')}`);
+    },
+    onScreenClosed() { this.refresh(); UI.hud(); if (this.save.auto && this.stats.auto && this.mode === 'dock') this.autoT = 1; },
+    reset() {
+      const settings = this.save.settings;
+      try { localStorage.removeItem(KEY); } catch (e) { /* ignore */ }
+      this.save = E.newSave();
+      this.save.settings = settings;
+      this.zoneSeen = 0;
+      this.refresh(); this.newPreview(); this.applySettings();
+      UI.closeSheet('settings');
+    },
+
+    // ---------- save files ----------
+    exportSave() {
+      this.persist();
+      const d = new Date();
+      const stamp = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}-${String(d.getHours()).padStart(2, '0')}${String(d.getMinutes()).padStart(2, '0')}`;
+      const data = JSON.stringify({ game: 'gnome-line-sinker', v: 1, at: d.toISOString(), save: this.save });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([data], { type: 'application/json' }));
+      a.download = `gnome-line-sinker-${stamp}.json`;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+      UI.toast(null, t('menuExport'), t('exportOk'));
+    },
+    importFile(file) {
+      const bad = () => { A.deny(); UI.toast(null, t('menuImport'), t('importBad')); };
+      file.text().then((txt) => {
+        let raw;
+        try { const obj = JSON.parse(txt); raw = obj && obj.save ? obj.save : obj; } catch (e) { bad(); return; }
+        if (!raw || typeof raw !== 'object' || typeof raw.coins !== 'number' || !raw.nodes || typeof raw.nodes !== 'object') { bad(); return; }
+        const apply = () => {
+          this.save = E.migrate(raw);
+          this.save.lastSeen = Date.now();
+          this.zoneSeen = this.save.zone;
+          this.refresh(); this.newPreview(); this.applySettings();
+          UI.closeSheet('settings');
+          if (UI.menuOpen) UI.openMenu();
+          A.discover();
+          UI.toast(null, t('menuImport'), t('importOk'));
+        };
+        if (UI.hasProgress()) {
+          UI.modal(t('menuImport'), `<p>${t('importConfirm')}</p>`, [
+            { label: t('back'), fn: () => {} },
+            { label: t('menuImport'), cls: 'grow', icon: 'upload', fn: apply },
+          ]);
+        } else apply();
+      }, bad);
+    },
+    onMenuClosed() {
+      if (!this.welcomed) { this.welcomed = true; this.welcomeBack(); }
+      if (this.save.auto && this.stats.auto && this.mode === 'dock') this.autoT = 1.5;
+    },
+
+    welcomeBack() {
+      const s = this.save;
+      if (!s.lastSeen) return;
+      const away = (Date.now() - s.lastSeen) / 1000;
+      if (away < 90 || !this.stats.pond) return;
+      const off = E.offline(s, away);
+      if (off.coins <= 0) return;
+      const give = () => {
+        s.coins += off.coins; s.seasonEarned += off.coins; s.lifetime += off.coins;
+        A.take(false); UI.bump('coinPill'); UI.hud(); this.persist();
+      };
+      UI.modal(t('welcome'), `<p>${t('welcomeBody', { t: KL.fmtTime(off.seconds) })}</p>
+        <div class="modal-big">${KL.ic('coin')}${KL.fmt(off.coins)}</div>
+        ${off.capped ? `<p class="muted">${t('welcomeCap', { h: this.stats.offlineH })}</p>` : ''}`, [
+        { label: t('take'), cls: 'btn-primary grow', icon: 'coin', fn: give },
+      ]);
+    },
+  };
+
+  // ---------- input ----------
+  // Docked: tap the sea to cast there. Casting: the hook chases your finger or cursor (it lags
+  // behind like a weight on a line); let go and it keeps going straight.
+  const cv = document.getElementById('game');
+  const toWorld = (cx, cy) => ({ x: (cx * R.dpr / R.S - R.ox) / E.PXM, y: R.camY + cy * R.dpr / R.S / E.PXM });
+  cv.addEventListener('pointerdown', (e) => {
+    if (g.mode === 'dock') {
+      if (UI.open || UI.menuOpen) return;
+      const w = toWorld(e.clientX, e.clientY);
+      if (w.y > 0.5) g.cast(w.x);
+      return;
+    }
+    if (g.mode !== 'cast') return;
+    g.pointer = { on: true, id: e.pointerId, sx: e.clientX, sy: e.clientY, touch: e.pointerType !== 'mouse' };
+    g.manualT = 1.5;
+    cv.setPointerCapture(e.pointerId);
+  });
+  cv.addEventListener('pointermove', (e) => {
+    if (g.mode !== 'cast') return;
+    const p = g.pointer;
+    if ((p.on && p.id === e.pointerId) || e.pointerType === 'mouse') {
+      g.pointer = { on: true, id: e.pointerId, sx: e.clientX, sy: e.clientY, touch: e.pointerType !== 'mouse' };
+      g.manualT = 1.5;
+    }
+  });
+  const endDrag = (e) => { if (g.pointer.id === e.pointerId && g.pointer.touch) g.pointer.on = false; };
+  cv.addEventListener('pointerup', endDrag);
+  cv.addEventListener('pointercancel', endDrag);
+  addEventListener('keydown', (e) => {
+    g.keys.add(e.key.toLowerCase());
+    if (e.key === ' ' || e.key === 'Enter') {
+      if (g.mode === 'dock' && !UI.open && !UI.menuOpen) { e.preventDefault(); g.cast(); } else if (g.mode === 'haul' && UI.open === 'haul') { e.preventDefault(); g.take(1); }
+    }
+    if (e.key === 'Escape' && UI.menuOpen && !UI.open) { UI.closeMenu(); return; }
+    if (e.key === 'Escape') { if (UI.open === 'tree' || UI.open === 'book') UI.closeScreens(); else if (UI.open === 'settings') UI.closeSheet('settings'); }
+  });
+  addEventListener('keyup', (e) => g.keys.delete(e.key.toLowerCase()));
+  document.getElementById('castBtn').onclick = () => g.cast();
+  document.getElementById('autoBtn').onclick = () => {
+    g.save.auto = !g.save.auto;
+    A.click();
+    UI.toast(null, t('auto'), t(g.save.auto ? 'autoOn' : 'autoOff'));
+    if (g.save.auto && g.mode === 'dock') g.autoT = 0.6;
+    UI.hud(); g.persist();
+  };
+  document.addEventListener('visibilitychange', () => { if (document.hidden) g.persist(); });
+  addEventListener('pagehide', () => g.persist());
+
+  // ---------- loop ----------
+  let last = 0, hudT = 0;
+  function loop(now) {
+    const dt = Math.min(0.05, (now - last) / 1000 || 0);
+    last = now;
+    const s = g.save;
+    s.playTime += dt;
+    // fish pen income ticks all the time
+    if (g.pondRate > 0) { const c = g.pondRate * dt; s.coins += c; s.seasonEarned += c; s.lifetime += c; }
+    g.rateT -= dt;
+    if (g.rateT <= 0) { g.rateT = 2; g.pondRate = E.pondRate(s); }
+
+    if (g.mode === 'throw') {
+      g.throw.t += dt;
+      if (g.throw.t >= g.throw.dur) g.startRun();
+    }
+    if (g.mode === 'cast' && g.run) {
+      const run = g.run;
+      const sp = g.stats.steer * 1.1;
+      const k = g.keys;
+      let tgt = null;
+      const kx = (k.has('arrowright') || k.has('d') ? 1 : 0) - (k.has('arrowleft') || k.has('a') ? 1 : 0);
+      const ky = (k.has('arrowdown') || k.has('s') ? 1 : 0) - (k.has('arrowup') || k.has('w') ? 1 : 0);
+      if (kx || ky) {
+        g.pointer.on = false; g.manualT = 1.5;
+        g.target = Math.max(1, Math.min(R.worldW - 1, g.target + kx * sp * dt));
+        tgt = ky ? { x: g.target, y: run.y + ky * 12 } : g.target;
+      } else if (g.pointer.on) {
+        tgt = toWorld(g.pointer.sx, g.pointer.sy);
+        g.target = tgt.x;
+      } else tgt = g.target;
+      g.manualT -= dt;
+      if (s.auto && g.stats.auto && g.manualT <= 0) { tgt = Bot.steer(run, g.stats.autoSkill, dt); g.target = tgt; }
+      E.stepRun(run, dt, tgt);
+      for (const ev of run.events.slice()) g.onEvent(ev);
+    } else if (g.preview) {
+      for (const f of g.preview.fish) {
+        f.x += f.vx * dt; f.ph += dt * 2.5;
+        if (f.x < -3) f.x = R.worldW + 3; else if (f.x > R.worldW + 3) f.x = -3;
+      }
+    }
+    if (g.mode === 'dock' && g.autoT > 0 && !UI.open && !UI.menuOpen) { g.autoT -= dt; if (g.autoT <= 0 && s.auto && g.stats.auto) g.cast(); }
+    if (g.mode === 'haul' && g.autoT > 0 && UI.open === 'haul') { g.autoT -= dt; if (g.autoT <= 0) g.take(1); }
+
+    const mid = R.frame(g, dt);
+    const depth = g.mode === 'cast' && g.run ? g.run.y : Math.max(0, mid);
+    A.setDepth(Math.min(1, Math.pow(depth / 1400, 0.7)));
+    KL.Music.mood = depth > 200 ? 'deep' : 'sun';
+    if (g.mode === 'dock' && Math.random() < dt / 25) A.gull();
+
+    hudT -= dt;
+    if (hudT <= 0) { hudT = 0.12; UI.hud(); }
+    if (now - g.lastSave > 5000) { g.lastSave = now; g.persist(); }
+    requestAnimationFrame(loop);
+  }
+
+  // ---------- boot ----------
+  const img = new Image();
+  img.src = KL.ATLAS_PNG || 'img/atlas.png';
+  const fonts = document.fonts ? document.fonts.load('600 16px Pixelify').catch(() => {}) : Promise.resolve();
+  Promise.all([new Promise((r) => { img.onload = r; img.onerror = r; }), fonts]).then(() => {
+    R.init(cv, img);
+    g.safeL = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--safe-l')) || 0;
+    g.refresh();
+    UI.g = g;
+    g.applySettings();
+    UI.init(g);
+    g.zoneSeen = g.save.zone;
+    g.newPreview();
+    UI.setMode('dock');
+    UI.hud();
+    UI.openMenu();
+    g.persist();
+    requestAnimationFrame((n) => { last = n; loop(n); });
+  });
+
+  // test hook (smoke tests and screenshots)
+  root.__kail = {
+    g, E,
+    give(coins, pearls) { g.save.coins += coins || 0; if (pearls) { g.save.pearls += pearls; g.save.pearlsEver += pearls; } g.refresh(); UI.hud(); },
+    setNodes(map) { Object.assign(g.save.nodes, map); g.refresh(); UI.hud(); },
+    cast: (x) => g.cast(x),
+  };
+})(this);

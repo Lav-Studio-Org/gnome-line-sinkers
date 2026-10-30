@@ -1,0 +1,4 @@
+Assets/
+_to_delete/
+node_modules/
+*.log

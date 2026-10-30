@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>Gnome, Line &amp; Sinker</title>
+  <meta name="description" content="Lempar kail, hindari ikan, tangkap semuanya saat naik. Game memancing santai dengan pohon skill.">
+  <meta name="theme-color" content="#14121c">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="icon" href="img/icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Icon set: 24px grid, 2px round strokes, one fill (--acc). Use with ic('name') in js/ui.js. -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-coin" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8.5" style="fill:var(--acc)"/><path d="M12 7.5v9M9.5 9.5h4a1.5 1.5 0 0 1 0 3h-3a1.5 1.5 0 0 0 0 3h4" stroke-linecap="round"/></g></symbol>
+      <symbol id="i-pearl" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12.5" r="7.5" style="fill:var(--acc)"/><path d="M8.5 10.5a4 4 0 0 1 3-2.5"/></g></symbol>
+      <symbol id="i-hook" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="14.5" cy="4" r="1.8" style="fill:var(--acc)"/><path d="M14.5 6v8.5a5 5 0 0 1-10 0V12l3 2.5"/></g></symbol>
+      <symbol id="i-book" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M5 5a2 2 0 0 1 2-2h12v15H7a2 2 0 0 0-2 2z" style="fill:var(--acc)"/><path d="M5 20a2 2 0 0 0 2 2h12v-4M9.5 8.5c1.6-1.6 4.2-1.6 5.5.5-1.3 2.1-3.9 2.1-5.5.5l-1 1v-3z"/></g></symbol>
+      <symbol id="i-tree" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 7.5v4.5M12 12l-6 5M12 12l6 5"/><rect x="9" y="2.5" width="6" height="6" rx="1.5" style="fill:var(--acc)"/><rect x="3" y="15.5" width="6" height="6" rx="1.5" style="fill:var(--acc)"/><rect x="15" y="15.5" width="6" height="6" rx="1.5" style="fill:var(--acc)"/></g></symbol>
+      <symbol id="i-gear" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M18.93 9.39 21.8 10v4l-2.87.62-.19.44 1.59 2.48-2.8 2.8-2.48-1.59-.44.19L14 21.8h-4l-.61-2.87-.44-.19-2.48 1.59-2.8-2.8 1.59-2.48-.19-.44L2.2 14v-4l2.87-.61.19-.44-1.59-2.48 2.8-2.8 2.48 1.59.44-.19L10 2.2h4l.61 2.87.44.19 2.48-1.59 2.8 2.8-1.59 2.480z" style="fill:var(--acc)"/><circle cx="12" cy="12" r="3"/></g></symbol>
+      <symbol id="i-close" viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></symbol>
+      <symbol id="i-robot" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4.5" y="8" width="15" height="11.5" rx="3" style="fill:var(--acc)"/><path d="M12 8V4.5M2 12.5v3M22 12.5v3"/><circle cx="12" cy="3.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="9" cy="13.5" r="1.5" fill="currentColor" stroke="none"/><circle cx="15" cy="13.5" r="1.5" fill="currentColor" stroke="none"/></g></symbol>
+      <symbol id="i-rope" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><ellipse cx="12" cy="12" rx="8" ry="7" style="fill:var(--acc)"/><ellipse cx="12" cy="12" rx="4.5" ry="3.5"/><path d="M19.5 14.5c1.5 2 1.5 4 0 6"/></g></symbol>
+      <symbol id="i-weight" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2.5v4"/><path d="M10 6.5h4l3.5 6.5a5.5 5.5 0 1 1-11 0z" style="fill:var(--acc)"/></g></symbol>
+      <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13.5 2.5 4.5 13.5h6.5l-1 8 9-11h-6.5z" style="fill:var(--acc)" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+      <symbol id="i-hooks" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 3v9a3.5 3.5 0 0 1-7 0v-1.5l2 1.5"/><path d="M19.5 9v6.5a3.5 3.5 0 0 1-7 0V14l2 1.5"/><circle cx="8.5" cy="3" r="1.5" style="fill:var(--acc)"/><circle cx="19.5" cy="8" r="1.5" style="fill:var(--acc)"/></g></symbol>
+      <symbol id="i-magnet" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M5 3.5h5v8.5a2 2 0 0 0 4 0V3.5h5v8.5a7 7 0 0 1-14 0z" style="fill:var(--acc)"/><path d="M5 8h5M14 8h5"/></g></symbol>
+      <symbol id="i-note" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17.5V6l10-2.5V15"/><circle cx="6.5" cy="17.5" r="2.6" style="fill:var(--acc)"/><circle cx="16.4" cy="15" r="2.6" style="fill:var(--acc)"/></g></symbol>
+      <symbol id="i-net" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3.5 5h17l-2.5 15H6z" style="fill:var(--acc)"/><path d="M9.2 5l-.8 15M14.8 5l.8 15M4.5 10.5h15M5.3 15.5h13.4"/></g></symbol>
+      <symbol id="i-fish" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M2.5 12c3.5-5 9.5-6 14-2l4.5-3.5v11l-4.5-3.5c-4.5 4-10.5 3-14-2z" style="fill:var(--acc)"/><circle cx="7.5" cy="11" r="1.2" fill="currentColor" stroke="none"/></g></symbol>
+      <symbol id="i-twin" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M2 8c2.5-3.5 6.5-4 9.5-1.5l3-2.5v8l-3-2.5C8.5 12 4.5 11.5 2 8z" style="fill:var(--acc)"/><path d="M8.5 16c2.5-3.5 6.5-4 9.5-1.5l3-2.5v8l-3-2.5c-3 2.5-7 2-9.5-1.5z" style="fill:var(--acc)"/></g></symbol>
+      <symbol id="i-recycle" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 8h10l-1 12.5H8z" style="fill:var(--acc)"/><path d="M5 8h14M10 8V5h4v3"/><path d="M10 12.5l2-2 2 2M12 10.5v6"/></g></symbol>
+      <symbol id="i-crate" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3.5" y="8" width="17" height="12" rx="1" style="fill:var(--acc)"/><path d="M2.5 8h19l-2-4h-15zM3.5 14h17M9 8v12M15 8v12"/></g></symbol>
+      <symbol id="i-chef" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M7 14.5a4.2 4.2 0 0 1-.6-8.4 5.6 5.6 0 0 1 11.2 0 4.2 4.2 0 0 1-.6 8.4z" style="fill:var(--acc)"/><path d="M7 14.5V20h10v-5.5M7 17h10"/></g></symbol>
+      <symbol id="i-stack" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="17.5" rx="7.5" ry="3" style="fill:var(--acc)"/><ellipse cx="12" cy="12.5" rx="7.5" ry="3" style="fill:var(--acc)"/><ellipse cx="12" cy="7.5" rx="7.5" ry="3" style="fill:var(--acc)"/></g></symbol>
+      <symbol id="i-shop" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4.5 11v9.5h15V11"/><path d="M3 4h18l1 5a3 3 0 0 1-5 1.5A3.5 3.5 0 0 1 12 11a3.5 3.5 0 0 1-5-0.5A3 3 0 0 1 2 9z" style="fill:var(--acc)"/><path d="M10 20.5v-5h4v5"/></g></symbol>
+      <symbol id="i-crown" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 18.5 3 7.5l5 4.5 4-7 4 7 5-4.5-1 11z" style="fill:var(--acc)"/><path d="M4 18.5h16"/></g></symbol>
+      <symbol id="i-pond" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><ellipse cx="12" cy="14" rx="9.5" ry="6" style="fill:var(--acc)"/><path d="M7 14.5c1.2-1 2.3-1 3.5 0s2.3 1 3.5 0 2.3-1 3.5 0"/><path d="M12 8V3.5M12 3.5c2 0 3.5 1 4 2.5"/></g></symbol>
+      <symbol id="i-moon" viewBox="0 0 24 24"><path d="M14.5 3.5a8.5 8.5 0 1 0 6 14 7 7 0 0 1-6-14z" style="fill:var(--acc)" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+      <symbol id="i-cat" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4.5 10V3.5l4.5 3.5h6l4.5-3.5V10a7.5 7.5 0 0 1-15 0z" style="fill:var(--acc)"/><circle cx="9" cy="11.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="15" cy="11.5" r="1.2" fill="currentColor" stroke="none"/><path d="M11 14.5h2l-1 1z" fill="currentColor"/></g></symbol>
+      <symbol id="i-clover" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="8.5" cy="8" r="3.5" style="fill:var(--acc)"/><circle cx="15.5" cy="8" r="3.5" style="fill:var(--acc)"/><circle cx="8.5" cy="15" r="3.5" style="fill:var(--acc)"/><circle cx="15.5" cy="15" r="3.5" style="fill:var(--acc)"/><path d="M15 18.5c1 1.5 2.5 2.5 4.5 3"/></g></symbol>
+      <symbol id="i-eye" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" style="fill:var(--acc)"/><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></g></symbol>
+      <symbol id="i-gem" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M7 3.5h10l4 6-9 11-9-11z" style="fill:var(--acc)"/><path d="M3 9.5h18M9.5 3.5 8 9.5l4 11 4-11-1.5-6"/></g></symbol>
+      <symbol id="i-sonar" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9" style="fill:var(--acc)"/><circle cx="12" cy="12" r="5"/><path d="M12 12l6-6"/><circle cx="15.5" cy="14.5" r="1.3" fill="currentColor" stroke="none"/></g></symbol>
+      <symbol id="i-reel" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="12" r="7.5" style="fill:var(--acc)"/><circle cx="11" cy="12" r="2"/><path d="M11 4.5v5M11 14.5v5M3.5 12h5M13.5 12h5M18.5 12h3v4"/></g></symbol>
+      <symbol id="i-shield" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 2.8l7.5 3V12c0 4.6-3.2 7.8-7.5 9.2C7.7 19.8 4.5 16.6 4.5 12V5.8z" style="fill:var(--acc)"/><path d="M8.5 12l2.5 2.5 4.5-5" stroke-linecap="round"/></g></symbol>
+      <symbol id="i-steer" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="6.5" style="fill:var(--acc)"/><circle cx="12" cy="12" r="2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></g></symbol>
+      <symbol id="i-timer" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13.5" r="7.5" style="fill:var(--acc)"/><path d="M12 13.5V9.5M9.5 2.5h5M12 2.5V6M18.6 6.6l1.4-1.4"/></g></symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="10.5" width="14" height="10" rx="2.4" style="fill:var(--acc)"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></g></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.6l4.4 4.4L19 7.4" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-help" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9" style="fill:var(--acc)"/><path d="M9.4 9.3a2.7 2.7 0 1 1 3.8 2.5c-.8.4-1.2 1-1.2 1.8v.6"/><circle cx="12" cy="17.2" r="1.2" fill="currentColor" stroke="none"/></g></symbol>
+      <symbol id="i-sound" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" style="fill:var(--acc)"/><path d="M15.5 9a4.2 4.2 0 0 1 0 6M18.2 6.4a8 8 0 0 1 0 11.2"/></g></symbol>
+      <symbol id="i-music" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17.5V6l10-2.5V15"/><circle cx="6.5" cy="17.5" r="2.6" style="fill:var(--acc)"/><circle cx="16.4" cy="15" r="2.6" style="fill:var(--acc)"/></g></symbol>
+      <symbol id="i-vibe" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="3.5" width="8" height="17" rx="2.2" style="fill:var(--acc)"/><path d="M4.6 8.5v7M19.4 8.5v7M1.8 10.5v3M22.2 10.5v3"/></g></symbol>
+      <symbol id="i-globe" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9" style="fill:var(--acc)"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/></g></symbol>
+      <symbol id="i-trash" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5h16M9.5 6.5V4h5v2.5"/><path d="M6 6.5l1 13.2a1.5 1.5 0 0 0 1.5 1.3h7a1.5 1.5 0 0 0 1.5-1.3L18 6.5" style="fill:var(--acc)"/></g></symbol>
+      <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3.2l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.6l-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z" style="fill:var(--acc)" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+      <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 2.5c.8 4.8 2.7 6.7 7.5 7.5-4.8.8-6.7 2.7-7.5 7.5-.8-4.8-2.7-6.7-7.5-7.5 4.8-.8 6.7-2.7 7.5-7.5zM19 15.5c.4 2 1 2.7 3 3-2 .4-2.6 1-3 3-.4-2-1-2.6-3-3 2-.3 2.6-1 3-3z" fill="currentColor"/></symbol>
+      <symbol id="i-wave" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M2.5 9c2-2 4-2 6 0s4 2 6 0 4-2 6.5 0"/><path d="M2.5 15c2-2 4-2 6 0s4 2 6 0 4-2 6.5 0"/></g></symbol>
+      <symbol id="i-home" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11L12 4l8.5 7" /><path d="M6 9.5V20h12V9.5" style="fill:var(--acc)"/><path d="M10 20v-5h4v5"/></g></symbol>
+      <symbol id="i-upload" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="13" width="17" height="7.5" rx="2" style="fill:var(--acc)"/><path d="M12 15.5V3.5M7.5 8L12 3.5 16.5 8"/></g></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="13" width="17" height="7.5" rx="2" style="fill:var(--acc)"/><path d="M12 3.5v12M7.5 11l4.5 4.5 4.5-4.5"/></g></symbol>
+      <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15l12.5-7.5z" style="fill:var(--acc)" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></symbol>
+      <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></symbol>
+      <symbol id="i-target" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9" style="fill:var(--acc)"/><circle cx="12" cy="12" r="5.2"/><circle cx="12" cy="12" r="1.7" fill="currentColor" stroke="none"/></g></symbol>
+    </defs>
+  </svg>
+
+  <canvas id="game" aria-label="Gnome, Line &amp; Sinker"></canvas>
+
+  <!-- start menu -->
+  <div id="menu" class="menu">
+    <div class="menu-panel">
+      <div class="logo"><img id="menuGnome" alt=""><div><h1>Gnome, Line<br><em>&amp; Sinker</em></h1><p data-t="tagline">Incremental memancing</p></div></div>
+      <div class="slot" id="menuSlot"></div>
+      <div class="menu-btns">
+        <button class="btn btn-primary" id="menuPlay"><svg class="ic"><use href="#i-play"/></svg><span id="menuPlayLabel">Lanjutkan</span></button>
+        <button class="btn" id="menuNew"><svg class="ic"><use href="#i-plus"/></svg><span data-t="menuNew">Main baru</span></button>
+        <div class="row2">
+          <button class="btn" id="menuImport"><svg class="ic"><use href="#i-upload"/></svg><span data-t="menuImport">Muat dari file</span></button>
+          <button class="btn" id="menuExport"><svg class="ic"><use href="#i-download"/></svg><span data-t="menuExport">Simpan ke file</span></button>
+        </div>
+        <button class="btn" id="menuCredits"><svg class="ic"><use href="#i-star"/></svg><span data-t="menuCredits">Kredit</span></button>
+      </div>
+      <p class="menu-foot">v1.1 · Lav Studio</p>
+      <input type="file" id="importFile" accept=".json,application/json" hidden>
+    </div>
+  </div>
+
+  <!-- HUD -->
+  <div id="hud" class="hud">
+    <div class="wallet">
+      <div class="pill pill-coin" id="coinPill"><svg class="ic"><use href="#i-coin"/></svg><b id="coins">0</b></div>
+      <div class="pill pill-pearl hidden" id="pearlPill"><svg class="ic"><use href="#i-pearl"/></svg><b id="pearls">0</b></div>
+    </div>
+    <div class="sub" id="penRate"></div>
+  </div>
+  <div id="hudRight" class="hud-right">
+    <button class="btn icon" id="menuBtn" aria-label="Menu"><svg class="ic"><use href="#i-home"/></svg></button>
+    <button class="btn icon" id="bookBtn" aria-label="Buku ikan"><svg class="ic"><use href="#i-book"/></svg></button>
+    <button class="btn icon" id="setBtn" aria-label="Pengaturan"><svg class="ic"><use href="#i-gear"/></svg></button>
+  </div>
+  <div id="castInfo" class="cast-info hidden">
+    <div class="pill pill-dark"><svg class="ic"><use href="#i-fish"/></svg><b id="catchCount">0/2</b></div>
+  </div>
+  <div id="hint" class="hint hidden"></div>
+  <div id="banner" class="banner hidden"></div>
+
+  <!-- dock -->
+  <div id="dock" class="dock">
+    <button class="btn btn-tree" id="treeBtn"><svg class="ic"><use href="#i-tree"/></svg><span data-t="tree">Skill</span><i class="badge hidden" id="treeBadge">0</i></button>
+    <button class="btn btn-auto hidden" id="autoBtn" aria-pressed="false"><svg class="ic"><use href="#i-robot"/></svg><span data-t="auto">Otomatis</span></button>
+    <div class="dock-stats" id="dockStats"></div>
+    <button class="btn btn-cast" id="castBtn"><svg class="ic"><use href="#i-hook"/></svg><span data-t="tapSea">Ketuk laut untuk melempar</span></button>
+  </div>
+
+  <!-- haul (results) -->
+  <aside id="haul" class="sheet sheet-right" aria-hidden="true">
+    <header class="sheet-head"><h2 data-t="haul">Tangkapan</h2><span class="muted" id="haulDepth"></span></header>
+    <ul class="haul-list" id="haulList"></ul>
+    <div class="haul-foot">
+      <div class="haul-bonus" id="haulBonus"></div>
+      <div class="haul-total"><span data-t="total">Total</span><b id="haulTotal"><svg class="ic"><use href="#i-coin"/></svg>0</b></div>
+      <div class="row">
+        <button class="btn btn-primary grow" id="haulTake"><span data-t="take">Ambil</span></button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- skill tree -->
+  <section id="tree" class="screen" aria-hidden="true">
+    <div class="tree-view" id="treeView">
+      <div class="tree-world" id="treeWorld"><svg class="tree-links" id="treeLinks"></svg></div>
+    </div>
+    <div class="tree-top">
+      <div class="wallet">
+        <div class="pill pill-coin"><svg class="ic"><use href="#i-coin"/></svg><b id="treeCoins">0</b></div>
+        <div class="pill pill-pearl hidden" id="treePearlPill"><svg class="ic"><use href="#i-pearl"/></svg><b id="treePearls">0</b></div>
+      </div>
+      <div class="tree-tools">
+        <button class="btn icon" id="zoomOut" aria-label="Perkecil"><svg class="ic"><use href="#i-minus"/></svg></button>
+        <button class="btn icon" id="zoomIn" aria-label="Perbesar"><svg class="ic"><use href="#i-plus"/></svg></button>
+        <button class="btn icon" id="treeClose" aria-label="Tutup"><svg class="ic"><use href="#i-close"/></svg></button>
+      </div>
+    </div>
+    <aside class="node-panel" id="nodePanel"></aside>
+  </section>
+
+  <!-- fishdex -->
+  <section id="book" class="screen screen-paper" aria-hidden="true">
+    <nav class="book-rail" id="bookRail"></nav>
+    <div class="book-main">
+      <header class="book-head">
+        <div><h2 id="bookTitle"></h2><p class="muted" id="bookSub"></p></div>
+        <button class="btn icon" id="bookClose" aria-label="Tutup"><svg class="ic"><use href="#i-close"/></svg></button>
+      </header>
+      <div class="book-grid" id="bookGrid"></div>
+      <p class="book-hint muted" id="bookHint"></p>
+    </div>
+  </section>
+
+  <!-- settings -->
+  <aside id="settings" class="sheet sheet-right" aria-hidden="true">
+    <header class="sheet-head"><h2 data-t="settings">Pengaturan</h2><button class="btn icon" id="setClose" aria-label="Tutup"><svg class="ic"><use href="#i-close"/></svg></button></header>
+    <div class="set-list" id="setList"></div>
+  </aside>
+
+  <!-- welcome back / confirm -->
+  <aside id="modal" class="sheet sheet-left" aria-hidden="true"></aside>
+  <div id="toasts" class="toasts"></div>
+  <div id="scrim" class="scrim"></div>
+
+  <script src="js/data.js"></script>
+  <script src="js/atlas.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/bot.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

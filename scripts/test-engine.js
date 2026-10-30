@@ -1,0 +1,167 @@
+// Engine tests (node, no browser). Run: node scripts/test-engine.js
+const assert = require('assert');
+const E = require('../js/engine.js');
+const Bot = require('../js/bot.js');
+const { NODES, SPECIES, MUTATIONS, ZONES } = E.DATA;
+let n = 0;
+const test = (name, fn) => { fn(); n++; console.log('ok', name); };
+
+test('data is consistent', () => {
+  const ids = new Set();
+  const spots = new Set();
+  for (const nd of NODES) {
+    assert(!ids.has(nd.id), 'duplicate node ' + nd.id); ids.add(nd.id);
+    const k = nd.x + ',' + nd.y;
+    assert(!spots.has(k), 'two nodes at ' + k); spots.add(k);
+    for (const r of nd.req) assert(NODES.find((m) => m.id === r), nd.id + ' needs missing ' + r);
+    assert(nd.max >= 1 && nd.c >= 0 && nd.g >= 1, 'bad numbers on ' + nd.id);
+    assert(/^[\x20-\x7e]+$/.test(nd.id + nd.fx + nd.icon), 'non-ascii id on ' + nd.id);
+  }
+  for (const sp of SPECIES) assert(E.spriteSize(sp.sprite), 'no sprite for ' + sp.id);
+  for (let z = 0; z < ZONES.length; z++) assert(SPECIES.some((sp) => E.zoneAt(sp.d[0]) === z), 'zone without fish ' + z);
+});
+
+test('new save starts with the root only and cannot buy without coins', () => {
+  const s = E.newSave();
+  assert.strictEqual(E.lv(s, 'root'), 1);
+  assert(!E.canBuy(s, 'line1'));
+  s.coins = 1e3;
+  assert(E.canBuy(s, 'line1'));
+  assert(!E.canBuy(s, 'line2'), 'line2 needs line1 first');
+  assert.strictEqual(E.nodeState(s, 'line2'), 'peek');
+  assert.strictEqual(E.nodeState(s, 'line3'), 'hidden');
+});
+
+test('buying spends coins, raises the level and stops at max', () => {
+  const s = E.newSave();
+  s.coins = 1e12;
+  const n = E.NODE.line1;
+  for (let i = 0; i < n.max; i++) assert(E.buy(s, 'line1'));
+  assert(!E.buy(s, 'line1'));
+  assert.strictEqual(E.lv(s, 'line1'), n.max);
+  assert.strictEqual(E.stats(s).line, 20 + n.max * n.v);
+});
+
+test('a cast is deterministic for a seed and always ends', () => {
+  const s = E.newSave();
+  const a = Bot.playCast(s, 0.7, { seed: 5, width: 100 });
+  const b = Bot.playCast(s, 0.7, { seed: 5, width: 100 });
+  assert.strictEqual(a.phase, 'done');
+  assert.strictEqual(a.caught.length, b.caught.length);
+  assert.strictEqual(a.maxY, b.maxY);
+});
+
+test('never more fish than the hook holds', () => {
+  const s = E.newSave();
+  s.nodes.line1 = 5; s.nodes.line2 = 3; s.nodes.cap1 = 2;
+  const cap = E.stats(s).cap;
+  for (let i = 0; i < 30; i++) assert(Bot.playCast(s, 0.9, { seed: i, width: 100 }).caught.length <= cap);
+});
+
+test('a fish hit on the way down bites and turns the line', () => {
+  const s = E.newSave();
+  const run = E.newRun(s, { seed: 1, width: 100 });
+  const f = run.fish.find((x) => x.y > 6);
+  run.x = f.x; f.vx = 0;
+  let hit = false;
+  for (let i = 0; i < 400 && run.phase === 'down'; i++) { E.stepRun(run, 1 / 60, f.x); if (run.events.some((e) => e.t === 'hit')) hit = true; }
+  assert(hit, 'expected a hit');
+  assert.strictEqual(run.phase, 'up');
+  assert(run.caught.length >= 1);
+});
+
+test('the first casts never come back empty', () => {
+  for (let i = 0; i < 25; i++) {
+    const s = E.newSave();
+    assert(Bot.playCast(s, 0.4, { seed: i + 1, width: 100 }).caught.length > 0, 'empty first cast seed ' + i);
+  }
+});
+
+test('guard passes through a fish', () => {
+  const s = E.newSave();
+  s.nodes.reel1 = 1; s.nodes.guard = 1;
+  const run = E.newRun(s, { seed: 2, width: 100 });
+  assert.strictEqual(run.guard, 1);
+  const f = run.fish.find((x) => x.y > 6);
+  f.vx = 0;
+  for (let i = 0; i < 400 && run.guard > 0 && run.phase === 'down'; i++) E.stepRun(run, 1 / 60, f.x);
+  assert.strictEqual(run.guard, 0);
+});
+
+test('haul and settle add coins, counts and variants', () => {
+  const s = E.newSave();
+  const run = Bot.playCast(s, 0.8, { seed: 3, width: 100 });
+  const h = E.haul(s, run);
+  assert(h.total > 0);
+  const before = s.coins;
+  const { fresh } = E.settle(s, h, 2);
+  assert.strictEqual(s.coins, before + h.total * 2);
+  assert.strictEqual(s.casts, 1);
+  assert(fresh.length > 0 && Object.keys(s.variants).length > 0);
+});
+
+test('mutations multiply value', () => {
+  const s = E.newSave();
+  const st = E.stats(s);
+  const base = { sp: E.SP.clown, mut: -1, y: 40 };
+  const v0 = E.fishValue(s, st, base);
+  MUTATIONS.forEach((m, i) => assert(Math.abs(E.fishValue(s, st, { ...base, mut: i }) - v0 * m.mult) < 1e-6));
+});
+
+test('fish pen pays only once bought, offline is capped', () => {
+  const s = E.newSave();
+  s.caught.goldfish = 100; s.caught.clown = 20;
+  assert.strictEqual(E.pondRate(s), 0);
+  s.nodes.pond1 = 1;
+  const r = E.pondRate(s);
+  assert(r > 0);
+  const off = E.offline(s, 99 * 3600);
+  assert(off.capped);
+  assert.strictEqual(off.seconds, E.stats(s).offlineH * 3600);
+});
+
+test('new season: needs the trench, resets coin skills, keeps pearl skills and collection', () => {
+  const s = E.newSave();
+  s.best = 100;
+  assert.strictEqual(E.prestigeGain(s), 0);
+  s.best = 500; s.bestEver = 500;
+  const g = E.prestigeGain(s);
+  assert(g >= 4);
+  s.nodes.line1 = 3; s.caught.goldfish = 5;
+  s.pearls = 10; s.pearlsEver = 10; s.nodes.p_line = 1;
+  E.prestige(s);
+  assert.strictEqual(s.pearls, 10 + g);
+  assert.strictEqual(E.lv(s, 'line1'), 0);
+  assert.strictEqual(E.lv(s, 'p_line'), 1);
+  assert.strictEqual(s.caught.goldfish, 5);
+  assert.strictEqual(s.coins, 0);
+  // spending pearls never lowers the value bonus
+  const v = E.valueMult(s);
+  s.pearls = 0;
+  assert.strictEqual(E.valueMult(s), v);
+});
+
+test('pearls pay for new depth records, so quick resets cannot farm them', () => {
+  const s = E.newSave();
+  const at = (d) => { s.best = d; return E.prestigeGain(s); };
+  assert.strictEqual(at(479), 0);
+  assert.strictEqual(at(480), 5);
+  assert(at(1000) > at(600));
+  s.best = 1000;
+  const g = E.prestige(s);
+  assert.strictEqual(g, 12);
+  s.best = 1000;
+  assert.strictEqual(E.prestigeGain(s), 1, 'same depth again pays the minimum');
+  s.best = 2000;
+  assert.strictEqual(E.prestigeGain(s), 20 - 12);
+});
+
+test('migrate keeps old saves and fills new fields', () => {
+  const s = E.migrate({ coins: 50, nodes: { line1: 2 }, settings: { sound: false } });
+  assert.strictEqual(s.coins, 50);
+  assert.strictEqual(E.lv(s, 'root'), 1);
+  assert.strictEqual(s.settings.sound, false);
+  assert.strictEqual(s.settings.music, true);
+});
+
+console.log(`\n${n} tests passed`);
