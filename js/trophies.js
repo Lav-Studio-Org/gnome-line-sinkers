@@ -148,27 +148,33 @@
         big.push(`<div class="card stat-big"><img class="spr" src="${KL.Render.url(sp.sprite, sp.shadow ? 'shadow' : '')}" alt="">
           <span class="meta">${t('st_fav')}</span><span class="nm">${KL.name(sp.name)}</span><span class="meta">${KL.fmt(s.caught[fav])} ${t('caught')}</span></div>`);
       }
-      grid.innerHTML = this.globalHtml() + big.join('') + list.map(([icon, k, v]) =>
+      grid.innerHTML = big.join('') + list.map(([icon, k, v]) =>
         `<div class="stat">${ic(icon)}<small>${t(k)}</small><b>${v}</b></div>`).join('');
-      // numbers from everyone arrive a moment later
-      if (KL.Global && KL.Global.enabled && !KL.Global.data) {
-        KL.Global.stats().then((d) => { if (d && this.open === 'book' && this.paper === 'trophy' && this.trophyTab === 'stats') this.renderTrophy(); });
-      }
       $('bookHint').textContent = '';
     },
 
-    // the whole sea: totals from every player (js/global.js); hidden when there are none
-    globalHtml() {
-      const G = KL.Global;
-      if (!G || !G.enabled) return '';
+    // the whole sea on the start menu: totals from every player (js/global.js), a show-off for
+    // whoever opens the game; hidden when the counter is off or has never answered
+    renderMenuGlobal() {
+      const box = $('menuGlobal'), G = KL.Global;
+      if (!box) return;
+      if (!G || !G.enabled) { box.classList.add('hidden'); return; }
       const d = G.data;
       const v = (n) => (d ? KL.fmt(n || 0) : '...');
-      return `<div class="stat-global"><b>${ic('globe')}${t('g_head')}</b>
+      box.innerHTML = `<b>${ic('globe')}${t('g_head')}</b>
+        <div class="g-big"><small>${t('g_fish')}</small><span>${v(d && d.fish)}</span></div>
         <div><small>${t('g_players')}</small><span>${v(d && d.players)}</span></div>
-        <div><small>${t('g_fish')}</small><span>${v(d && d.fish)}</span></div>
         <div><small>${t('g_casts')}</small><span>${v(d && d.casts)}</span></div>
-        <div><small>${t('g_deep')}</small><span>${d ? KL.fmt(d.deep || 0) + ' m' : '...'}</span></div>
-        <p>${t('g_note')}</p></div>`;
+        <div><small>${t('g_deep')}</small><span>${d ? KL.fmt(d.deep || 0) + ' m' : '...'}</span></div>`;
+      box.classList.remove('hidden');
+      if (G.busyStats) return;
+      G.busyStats = true;
+      G.stats().then((nd) => {
+        G.busyStats = false;
+        if (!this.menuOpen) return;
+        if (!nd) { box.classList.add('hidden'); return; }
+        if (nd !== d) this.renderMenuGlobal();
+      });
     },
 
     // ---------- share card ----------

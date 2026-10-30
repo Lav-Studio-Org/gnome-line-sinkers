@@ -500,6 +500,7 @@
         : `${ic('wave')}<span>${t('noSave')}</span>`;
       $('menu').classList.remove('hidden');
       this.menuOpen = true;
+      if (this.renderMenuGlobal) this.renderMenuGlobal();
       ['hud', 'hudRight', 'dock'].forEach((id) => $(id).classList.add('hidden'));
     },
     closeMenu() {
