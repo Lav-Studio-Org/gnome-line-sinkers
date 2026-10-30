@@ -385,7 +385,8 @@
       let tgt = null;
       const kx = (k.has('arrowright') || k.has('d') ? 1 : 0) - (k.has('arrowleft') || k.has('a') ? 1 : 0);
       const ky = (k.has('arrowdown') || k.has('s') ? 1 : 0) - (k.has('arrowup') || k.has('w') ? 1 : 0);
-      const st = g.stick, dead = (v) => (Math.abs(v) < 0.15 ? 0 : (v - Math.sign(v) * 0.15) / 0.85);
+      // dead zone plus a squared curve: small pushes nudge the hook, only a full push moves it fast
+      const st = g.stick, dead = (v) => (Math.abs(v) < 0.2 ? 0 : Math.sign(v) * ((Math.abs(v) - 0.2) / 0.8) ** 2);
       if (kx || ky) {
         g.pointer.on = false; g.manualT = 1.5;
         g.target = Math.max(1, Math.min(R.worldW - 1, g.target + kx * sp * dt));
@@ -393,8 +394,10 @@
       } else if (st.on) {
         const jx = dead(st.x), jy = dead(st.y);
         g.pointer.on = false; g.manualT = 1.5;
-        g.target = Math.max(1, Math.min(R.worldW - 1, g.target + jx * sp * 1.3 * dt));
-        tgt = jy ? { x: g.target, y: run.y + jy * 12 } : g.target;
+        // the aim never runs far ahead of the hook, so letting go stops it close to where it is
+        g.target = Math.max(run.x - 5, Math.min(run.x + 5, g.target + jx * sp * 0.75 * dt));
+        g.target = Math.max(1, Math.min(R.worldW - 1, g.target));
+        tgt = jy ? { x: g.target, y: run.y + jy * 8 } : g.target;
       } else if (g.pointer.on) {
         tgt = toWorld(g.pointer.sx, g.pointer.sy);
         g.target = tgt.x;
