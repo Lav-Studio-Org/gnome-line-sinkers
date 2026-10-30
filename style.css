@@ -87,6 +87,38 @@ canvas#game { position: fixed; inset: 0; width: 100%; height: 100%; display: blo
 .banner b { font-size: 1.5em; font-weight: 600; }
 @keyframes slidein { from { transform: translateX(-12px); opacity: 0; } }
 
+/* ---------- forecast (dock) and guardian fight bar ---------- */
+.forecast { display: flex; flex-wrap: wrap; gap: calc(var(--u) * .5); pointer-events: auto; max-width: min(52vw, 560px); margin-top: 2px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; height: calc(var(--tap) * .74); padding: 0 calc(var(--u) * .8) 0 calc(var(--u) * .45);
+  background: var(--paper); color: var(--ink); border: var(--line); border-radius: var(--r); box-shadow: var(--shadow);
+  font: inherit; font-size: calc(var(--u) * 1.15); font-weight: 600; cursor: pointer; white-space: nowrap; --acc: var(--gold); }
+.chip .ic { width: 1.5em; height: 1.5em; }
+.chip:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); }
+.chip-night { background: var(--night-2); color: var(--paper); --acc: var(--pearl); }
+.chip-dusk { --acc: var(--accent-2); }
+.chip-rain { --acc: var(--sea); }
+.chip-storm { background: var(--ink-2); color: var(--paper); --acc: var(--gold); }
+.chip-bait { --acc: var(--shell); }
+.chip-boss { background: var(--ink); color: var(--paper); --acc: var(--gold); }
+.chip small { font-weight: 400; opacity: .8; }
+.boss-bar { position: fixed; top: calc(var(--u) * .9); left: 50%; transform: translateX(-50%); width: min(46vw, 420px);
+  background: var(--ink); color: var(--paper); border: var(--line); border-radius: var(--r); box-shadow: 0 3px 0 rgba(0,0,0,.35); padding: 6px 10px 8px; }
+.boss-name { display: flex; align-items: center; gap: 6px; font-size: calc(var(--u) * 1.15); --acc: var(--gold); }
+.boss-name .ic { width: 1.4em; height: 1.4em; color: var(--paper); }
+.boss-hp { margin-top: 5px; height: calc(var(--u) * .9); background: var(--ink-3); border: 2px solid var(--paper); border-radius: 2px; overflow: hidden; }
+.boss-hp i { display: block; height: 100%; width: 100%; background: var(--gold); transition: width .1s linear; }
+.boss-bar.tele .boss-hp { border-color: var(--accent); }
+.bait-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.bait-list button { width: 100%; display: flex; align-items: center; gap: 10px; text-align: left; padding: 8px 10px; font: inherit;
+  background: var(--paper); border: var(--line); border-radius: var(--r); box-shadow: var(--shadow); cursor: pointer; --acc: var(--shell); }
+.bait-list button .ic { width: 2em; height: 2em; flex: none; }
+.bait-list button.on { background: var(--paper-2); outline: 2px solid var(--accent); outline-offset: -5px; }
+.bait-list button:disabled { opacity: .55; cursor: default; --acc: var(--paper-3); }
+.bait-list small { display: block; color: var(--muted); }
+.boss-card { display: flex; gap: 12px; align-items: center; }
+.boss-card img { flex: none; }
+.forecast-next { color: var(--muted); font-size: .9em; }
+
 /* ---------- joystick (touch, while casting) ---------- */
 .stick { position: fixed; right: calc(var(--u) * 2 + var(--safe-r)); bottom: calc(var(--u) * 1.6 + var(--safe-b));
   width: max(108px, calc(var(--u) * 10)); height: max(108px, calc(var(--u) * 10)); touch-action: none; z-index: 5; }
@@ -336,6 +368,9 @@ body.port { --u: clamp(9px, 3.3vw, 14px); --tap: max(44px, calc(var(--u) * 3.5))
   display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
 .port .hud-right .btn.icon { width: auto; }
 .port .cast-info { top: calc(var(--u) * .9); }
+.port .forecast { max-width: calc(100vw - var(--u) * 1.8); }
+.port .boss-bar { top: calc(var(--u) * 5.4); width: calc(100vw - var(--u) * 1.8); }
+.port.fighting .banner { top: calc(var(--u) * 11.5); }
 .port .dock { bottom: calc(var(--tap) + var(--u) * 1.7 + var(--safe-b)); flex-wrap: wrap; align-items: stretch; gap: calc(var(--u) * .6); }
 .port .dock-stats { order: 0; flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: 0 1em; }
 .port .dock-stats span { margin: 0; }

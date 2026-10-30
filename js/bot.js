@@ -34,6 +34,8 @@
       else if (o.k === 'rock') obs.push([o, o.r + 0.6, 0.8]);
       else if (o.k === 'net') obs.push([o, o.w / 2, 0.3]);
     }
+    // a beaten guardian is a rematch: the bot steers around it and keeps the cast for fish
+    for (const g of run.bosses) if (!g.gate && !g.won && !g.gone) obs.push([g, g.hw + 0.8, 1.2]);
     if (!near.length && !obs.length) return run.x;
     const lanes = [];
     for (let x = 1; x < run.width - 1; x += 1.25) lanes.push(x);
@@ -67,10 +69,9 @@
 
   function decideUp(run, skill, r) {
     const st = run.st;
-    if (run.caught.length >= st.cap) return run.x;
     const look = 0.5 + 1.4 * skill;
     let best = null, bestScore = 0;
-    for (let i = Math.min(run.fish.length - 1, firstBelow(run.fish, run.y + 3)); i >= 0; i--) {
+    for (let i = Math.min(run.fish.length - 1, firstBelow(run.fish, run.y + 3)); i >= 0 && run.caught.length < st.cap; i--) {
       const f = run.fish[i];
       if (run.y - f.y > st.reel * look + 3) break;
       if (f.st !== 0) continue;
@@ -84,6 +85,12 @@
     }
     if (best == null) best = run.x;
     else best += (r() - 0.5) * (1 - skill) * 6;
+    // a rock right above: go round it on the open-water side (wall rocks: away from the wall)
+    for (const o of E.obsIn(run, run.y - 8, run.y, [])) {
+      if (o.k !== 'rock' || Math.abs(best - o.x) > o.r + 1) continue;
+      const side = o.x < o.r ? 1 : o.x > run.width - o.r ? -1 : best >= o.x ? 1 : -1;
+      best = o.x + side * (o.r + 2);
+    }
     // with fish on the line, steer around mines above
     if (run.caught.length) {
       for (const o of E.obsIn(run, run.y - st.reel * look - 2, run.y + 1, [])) {
@@ -93,9 +100,25 @@
     return best;
   }
 
+  // Guardian fight: pull to the far side of where it is heading. A player notices a turn only
+  // after a reaction delay, so the aim lags the guardian's real direction by that much.
+  function decideFight(run, skill, b) {
+    const f = run.fight;
+    if (b.fdir !== f.dir) { b.fdir = f.dir; b.react = 0.55 - 0.4 * skill; }
+    if (b.react > 0) return b.fx != null ? b.fx : run.x;
+    b.fx = f.x - f.dir * (4 + 2 * skill);
+    return b.fx;
+  }
+
   // Returns the target x for this frame. Keeps a little state on the run.
   function steer(run, skill, dt) {
     const b = run.bot || (run.bot = { t: 0, x: run.x, r: E.rng(((run.fish.length * 7919) ^ 0x9e37) >>> 0) });
+    if (run.phase === 'fight') {
+      b.react = (b.react || 0) - dt;
+      return decideFight(run, skill, b);
+    }
+    // the fight is over: forget its aim and look around at once
+    if (b.fdir != null) { b.fdir = null; b.fx = null; b.t = 0; b.x = run.x; }
     b.t -= dt;
     if (b.t <= 0) {
       // slower players re-think less often

@@ -12,7 +12,7 @@ const E = require('../js/engine.js');
 const Bot = require('../js/bot.js');
 const { ZONES, NODES, TIER, applyTier, GEAR } = E.DATA;
 
-const TARGET = [0, 0.7, 7, 18, 40, 85]; // minute each zone is first reached, season 1
+const TARGET = [0, 1.2, 7, 18, 40, 85]; // minute each zone is first reached, season 1
 const OVERHEAD = 4;                      // seconds per cast on the haul screen and casting
 const fmt = (n) => (n >= 1e12 ? (n / 1e12).toFixed(1) + 'T' : n >= 1e9 ? (n / 1e9).toFixed(1) + 'B' : n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(1) + 'K' : Math.round(n) + '');
 const mm = (t) => `${Math.floor(t / 60)}m${String(Math.floor(t % 60)).padStart(2, '0')}`;
@@ -47,6 +47,7 @@ function simulate({ skill = 0.6, hours = 6, seasons = 3, seed = 12345, log = nul
   const recent = [];
   const entry = [[]];
   let sea = null; // the sea carries over between casts, like in the game
+  const fights = {}; // guardian attempts per boss
   const say = (m) => log && log(`${mm(t).padStart(7)}  ${m}`);
   while (t < hours * 3600 && season < seasons) {
     const st = E.stats(s);
@@ -56,8 +57,15 @@ function simulate({ skill = 0.6, hours = 6, seasons = 3, seed = 12345, log = nul
     const dt = run.t + OVERHEAD;
     const pond = E.pondRate(s) * dt;
     s.coins += pond; s.seasonEarned += pond; s.lifetime += pond;
-    E.settle(s, h);
+    const res = E.settle(s, h);
     t += dt; casts++;
+    if (h.boss) {
+      const f = fights[h.boss.id] || (fights[h.boss.id] = { tries: 0, wins: 0, time: 0 });
+      f.tries++; f.time += run.t;
+      if (h.boss.win) f.wins++;
+      if (res.bossFirst) say(`beat ${h.boss.id} after ${f.tries} tries (line ${st.line}, reel ${st.reel.toFixed(1)}, cast ${run.t.toFixed(1)}s)`);
+      else if (!h.boss.win && f.tries <= 3) say(`  ${h.boss.id} got away, ${(h.boss.left * 100).toFixed(0)}% stamina left (line ${st.line})`);
+    }
     s.playTime += dt;
     for (const m of gearShop(s)) if (m.startsWith('gear') || log === console.log && process.argv.includes('--ach')) say(`${m} (shells ${s.shells})`);
     recent.push(h.total); if (recent.length > 5) recent.shift();
@@ -89,7 +97,7 @@ function simulate({ skill = 0.6, hours = 6, seasons = 3, seed = 12345, log = nul
     }
   }
   say(`end: ${casts} casts, shells ${s.shells} (ever ${s.shellsEver}), achievements ${Object.keys(s.ach).length}/${E.DATA.ACH.length}, pearls ${s.pearls}, species ${Object.keys(s.caught).length}/${E.DATA.SPECIES.length}, variants ${Object.keys(s.variants).length}`);
-  return { entry, save: s, t };
+  return { entry, save: s, t, fights };
 }
 
 function firstSeason(T, upTo) {

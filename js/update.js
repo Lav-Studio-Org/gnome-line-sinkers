@@ -5,7 +5,7 @@
 (function (root) {
   'use strict';
   const KL = root.KL;
-  const VERSION = '1.6'; // release: bump this and version.json together
+  const VERSION = '1.7'; // release: bump this and version.json together
   KL.VERSION = VERSION;
 
   const files = () => {

@@ -12,11 +12,12 @@ that tier reaches its zone on time (averaged over 3 seeds):
 | Milestone | Target | Simulated |
 |---|---|---|
 | First skill | < 1 min | 0:38 |
-| Reef 30 m | 0.7 min | 0.7 min |
-| Open Blue 90 m | (follows) | ~10 min |
-| Twilight 220 m | 18 min | 17.7 min |
-| Trench 480 m (new season unlocked) | 40 min | 42.4 min |
-| Weird Deep 1050 m | 85 min | 76.3 min |
+| King Catfish beaten (26 m gate) | (follows) | ~1 min |
+| Reef 30 m | 1.2 min | 1.2 min |
+| Open Blue 90 m | (follows) | 9.8 min |
+| Twilight 220 m | 18 min | 17.8 min |
+| Trench 480 m (new season unlocked) | 40 min | 41.4 min |
+| Weird Deep 1050 m | 85 min | 83.5 min |
 
 Refitted on 2026-10-30 after obstacles (rocks, urchins, mines, nets, currents, vents) and the
 2D hook were added, and again when 46 species from the 80+ Fishing Icons pack joined
@@ -36,6 +37,18 @@ Refitted when the line became a length (side moves and current drift pay it out,
 DESIGN.md section 13). With side moves at 1.8 m of line per metre (3 m felt too harsh when
 moving fast): `TIER = [43, 440, 7.9e5, 1.5e8, 7.5e9, 3.8e11]`; zones at
 0.6 / 10.4 / 16.9 / 43 / 89 min.
+
+Refitted for v1.7, when zone guardians and cast conditions arrived (DESIGN.md sections 14 and
+15). Every zone now opens only after its guardian is caught, so the bot fights them (aiming
+`4 + 2 * skill` m behind the guardian after a reaction delay of `0.55 - 0.4 * skill` s) and
+plays the time of day and weather as they come, with worm bait. The Reef target moved from
+0.7 to 1.2 min because the first guardian fight (about 10 s plus a cast to reach it) now sits
+in front of it. `TIER = [55, 770, 1.7e6, 5.1e8, 2.6e10, 1.3e12]`.
+
+Guardian attempts in the sim (1.5 hours, two seasons; tries include accidental rematches):
+skill 0.3 beats each gate within 1-3 tries, skill 0.6 and 0.9 mostly on the first. Humans react
+slower and aim less steadily than the bot, so expect one or two escapes per gate from 214 m on;
+the stamina carried between tries (half of the damage stays) caps that at three or four.
 
 ## Shells (outfits and boats)
 

@@ -53,7 +53,10 @@
     newPreview(keepSeed, keep) {
       const p = keepSeed ? this.preview : null;
       this.preview = E.newRun(this.save, { width: R.worldW, seed: p ? p.seed : undefined, keep: p ? p.keep : keep });
+      if (this.mode === 'dock') UI.forecast();
     },
+    // a new bait changes what spawns, so the sea is rebuilt from the same seed
+    onBait() { this.newPreview(true); this.persist(); },
     // the haul list shows value per row before the crate/bulk bonus; keep rows consistent with the total
     statsHaulMult(h) { return 1 + h.fullB + h.bulkB; },
 
@@ -144,6 +147,37 @@
           break;
         }
         case 'full': A.full(); R.text(run.x, run.y - 3, t('full'), '#ff6b3d', true); break;
+        case 'bossStart': {
+          const sp = SPECIES[ev.b.sp];
+          A.zone(); A.hit(); R.shake = 0.5; R.burst(run.x, run.y, 18);
+          UI.banner(ev.b.gate ? t('bossGuard') : t('bossRematch'), KL.name(sp.name));
+          if (!this.save.rec.fights) UI.hint(t('bossHint'));
+          else R.text(run.x, run.y - 4, t('bossFight'), '#ffd257', true);
+          this.buzz(80);
+          break;
+        }
+        case 'bossTele': A.slow(); this.buzz(15); break;
+        case 'bossMove': {
+          const k = { run: 'bossRun', dash: 'bossDash', dive: 'bossDive', feint: 'bossFeint' }[ev.move];
+          R.text(run.x, run.y - ev.b.hh - 4, t(k), ev.move === 'feint' ? '#b8a8ff' : '#ff9a7a', ev.move !== 'run');
+          if (ev.move !== 'feint') { R.shake = 0.15; this.buzz(25); }
+          break;
+        }
+        case 'bossWin': {
+          const sp = SPECIES[ev.b.sp];
+          A.discover(); A.full(); R.shake = 0.4; R.burst(run.x, run.y, 24);
+          R.text(run.x, run.y - 4, t('bossWin'), '#ffd257', true);
+          UI.banner(t('bossWin'), KL.name(sp.name));
+          UI.hint('');
+          this.buzz(120);
+          break;
+        }
+        case 'bossEscape':
+          A.deny(); A.bottom(); R.shake = 0.3;
+          R.text(run.x, run.y - 4, t('bossEscape'), '#ff9a7a', true);
+          UI.banner(t('bossEscape'), t('bossHp', { p: Math.round(ev.b.left * 100) }));
+          UI.hint('');
+          break;
         case 'surface': this.surface(); break;
       }
     },
@@ -156,6 +190,7 @@
       this.haul = E.haul(this.save, run);
       this.landed = 0;
       run.caught.forEach((f, i) => R.fly(f, run.x, 0, i * Math.max(0.025, 0.08 - run.caught.length * 0.002)));
+      if (run.trophy) R.fly(Object.assign({ vx: 1 }, run.trophy), run.x, 0, 0.1);
       this.mode = 'haul';
       UI.setMode('haul');
       KL.Music.activity = 0;
@@ -172,7 +207,7 @@
       UI.hideHaul();
       this.autoT = 0;
       const h = this.haul;
-      const { gained, fresh } = E.settle(this.save, h, mult);
+      const { gained, fresh, bossFirst } = E.settle(this.save, h, mult);
       A.take(mult > 1 || h.items.some((i) => i.mut >= 1));
       UI.bump('coinPill');
       fresh.forEach((id, i) => setTimeout(() => {
@@ -180,6 +215,12 @@
         UI.toast(R.url(sp.sprite, sp.shadow ? 'shadow' : ''), t('newSpecies'), KL.name(sp.name));
         A.discover();
       }, 300 + i * 450));
+      if (bossFirst) {
+        const b = E.BOSS_BY[bossFirst];
+        setTimeout(() => { UI.banner(t('bossOpen', { z: KL.name(ZONES[b.zone].name) }), `+${b.shells} ${t('shells')}`); UI.bump('shellPill'); A.zone(); }, 300 + fresh.length * 450);
+      } else if (h.boss && !h.boss.win && h.boss.gate) {
+        setTimeout(() => UI.toast(null, t('bossEscape'), t('bossLeft', { p: Math.round(h.boss.left * 100) })), 400);
+      }
       this.achCheck(300 + fresh.length * 450);
       this.mode = 'dock';
       const left = E.carryOver(this.run);
@@ -405,12 +446,18 @@
       g.manualT -= dt;
       if (s.auto && g.stats.auto && g.manualT <= 0) { tgt = Bot.steer(run, g.stats.autoSkill, dt); g.target = tgt; }
       E.stepRun(run, dt, tgt);
-      UI.lineLeft(run.phase === 'down' ? E.lineLeft(run) : -1, E.lineLeft(run) / run.st.line);
+      UI.lineLeft(run.phase !== 'up' ? E.lineLeft(run) : -1, E.lineLeft(run) / run.st.line);
+      UI.bossBar(run.fight);
       for (const ev of run.events.slice()) g.onEvent(ev);
     } else if (g.preview) {
       for (const f of g.preview.fish) {
         f.x += f.vx * dt; f.ph += dt * 2.5;
         if (f.x < -3) f.x = R.worldW + 3; else if (f.x > R.worldW + 3) f.x = -3;
+      }
+      // guardians patrol their arena
+      for (const b of g.preview.bosses) {
+        b.ph += dt * 2; b.x += b.dir * b.def.spd * 0.25 * dt;
+        if (b.x < 8) { b.x = 8; b.dir = 1; } else if (b.x > R.worldW - 8) { b.x = R.worldW - 8; b.dir = -1; }
       }
     }
     if (g.mode === 'dock' && g.autoT > 0 && !UI.open && !UI.menuOpen) { g.autoT -= dt; if (g.autoT <= 0 && s.auto && g.stats.auto) g.cast(); }

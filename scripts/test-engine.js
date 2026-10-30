@@ -264,6 +264,7 @@ test('line is a length: side moves pay it out and the hook turns when it is gone
   const s = E.newSave(); s.casts = 10; s.nodes.line1 = 5; // 80 m of line
   const straight = E.newRun(s, { seed: 4, width: 100 }), zig = E.newRun(s, { seed: 4, width: 100 });
   straight.fish = []; zig.fish = []; straight.obs = []; zig.obs = [];
+  for (const r of [straight, zig]) { r.bosses = []; r.floor = Infinity; } // no guardian in the way
   let t = 0;
   while (straight.phase === 'down') E.stepRun(straight, 1 / 30, 50);
   while (zig.phase === 'down') { t += 1 / 30; E.stepRun(zig, 1 / 30, Math.sin(t * 3) > 0 ? 90 : 10); }
@@ -292,6 +293,88 @@ test('save codec round-trips and rejects edited or plain saves', () => {
   }
   assert.strictEqual(C.decode(JSON.stringify(s)), null);
   assert.strictEqual(C.decode('GLS1zzzz'), null);
+});
+
+test('a closed guardian is a floor: reaching its arena starts the fight', () => {
+  const s = E.newSave(); s.casts = 10; s.nodes.line1 = 5;
+  const run = E.newRun(s, { seed: 3, width: 100 });
+  run.fish = []; run.obs = [];
+  assert.strictEqual(run.floor, 26);
+  let deepest = 0, fought = false;
+  while (run.phase !== 'done') {
+    E.stepRun(run, 1 / 30, 50);
+    deepest = Math.max(deepest, run.y);
+    if (run.phase === 'fight') fought = true;
+  }
+  assert(fought, 'should have fought the catfish');
+  assert(deepest <= 26.01, 'went past the gate: ' + deepest);
+  assert(run.bossRes, 'fight result recorded');
+});
+
+test('winning opens the gate for good, pays shells once and the guardian is in the haul', () => {
+  const s = E.newSave(); s.casts = 10; s.nodes.line1 = 2;
+  let run, guard = 0;
+  do { run = Bot.playCast(s, 0.95, { width: 100 }); E.settle(s, E.haul(s, run)); } while (!(run.bossRes && run.bossRes.win) && guard++ < 40);
+  assert(s.bosses.b_catfish.won, 'catfish beaten');
+  assert(s.caught.b_catfish >= 1 && s.shellsEver >= 10, 'caught and paid');
+  const next = E.newRun(s, { width: 100 });
+  assert.strictEqual(next.floor, 86, 'next gate is the grouper');
+  const shells = s.shellsEver;
+  E.settle(s, { items: [], total: 0, depth: 0, boss: { id: 'b_catfish', win: true, gate: false, left: 0 } });
+  assert.strictEqual(s.shellsEver, shells, 'a rematch pays no shells');
+});
+
+test('a guardian that gets away keeps half the stamina it lost', () => {
+  const s = E.newSave(); s.casts = 10; s.nodes.line1 = 1;
+  const run = E.newRun(s, { seed: 5, width: 100 });
+  run.fish = []; run.obs = [];
+  // follow the guardian instead of pulling against it: it runs free and takes the line
+  while (run.phase !== 'done') E.stepRun(run, 1 / 30, run.fight ? run.fight.x + run.fight.dir * 6 : 50);
+  assert(run.bossRes && !run.bossRes.win, 'it should get away');
+  const left = run.bossRes.left;
+  assert(left < 1 && left > 0.05);
+  E.settle(s, E.haul(s, run));
+  assert.strictEqual(s.bosses.b_catfish.left, left);
+  const next = E.newRun(s, { width: 100 });
+  assert(Math.abs(next.bosses[0].hp - next.bosses[0].hpMax * left) < 1e-9, 'stamina carried to the next try');
+});
+
+test('old saves keep the zones they reached; guardians never spawn as normal fish', () => {
+  const old = E.newSave(); delete old.bosses; old.zone = 3;
+  const s = E.migrate(JSON.parse(JSON.stringify(old)));
+  assert(s.bosses.b_catfish.free && s.bosses.b_grouper.free && s.bosses.b_tuna.free && !s.bosses.b_manta);
+  assert.strictEqual(E.gateBoss(s).id, 'b_manta');
+  const fresh = E.migrate(JSON.parse(JSON.stringify(E.newSave())));
+  assert.deepStrictEqual(fresh.bosses, {});
+  s.nodes.line1 = 5; s.nodes.line2 = 3;
+  for (let i = 0; i < 20; i++) for (const f of E.newRun(s, { seed: i, width: 100 }).fish) assert(!SPECIES[f.sp].boss, 'guardian spawned as a fish');
+  s.caught.b_angler = 50;
+  const without = Object.assign({}, s.caught); delete without.b_angler;
+  s.nodes.pond1 = 1;
+  const a = E.pondRate(s); s.caught = without; assert.strictEqual(E.pondRate(s), a, 'pen ignores guardians');
+});
+
+test('cast conditions: the forecast is the cast, the first casts are calm, bait needs its zone', () => {
+  const s = E.newSave();
+  for (let i = 0; i < 8; i++) assert.strictEqual(E.castCond(s, i).weather, 'cerah');
+  const seen = {};
+  for (let i = 0; i < 400; i++) { const c = E.castCond(s, i); seen[c.weather] = 1; assert.deepStrictEqual(c, E.castCond(s, i)); }
+  assert(seen.hujan && seen.badai, 'rain and storms happen');
+  assert.strictEqual(E.castCond(s, 0).time, 'pagi');
+  assert.strictEqual(E.castCond(s, 9).time, 'malam');
+  s.casts = 37;
+  const run = E.newRun(s, { width: 100 });
+  assert.deepStrictEqual(run.cond, E.castCond(s, 37));
+  assert(!E.setBait(s, 'udang') && s.bait === 'cacing', 'shrimp needs Open Blue');
+  s.zone = 2;
+  assert(E.setBait(s, 'udang') && E.castCond(s, 37).fx.rare > 1.7);
+  // a storm makes currents stronger and pays more
+  let i = 8; while (E.castCond(s, i).weather !== 'badai') i++;
+  s.casts = i; s.bait = 'cacing';
+  const st = E.newRun(s, { seed: 7, width: 100 });
+  s.casts = 8;
+  const calm = E.newRun(s, { seed: 7, width: 100 });
+  assert(st.st.valueMult > calm.st.valueMult * 1.4);
 });
 
 console.log(`\n${n} tests passed`);

@@ -58,6 +58,9 @@ const fs = require('fs');
     k.give(2e6);
     for (const sp of k.E.DATA.SPECIES.slice(0, 22)) k.g.save.caught[sp.id] = 12;
     k.g.save.variants['clown:gold'] = 1; k.g.save.zone = 3; k.g.save.bestEver = 380;
+    // the guardians of the zones reached are beaten (the trench guardian at 472 m still blocks)
+    k.g.save.bosses = { b_catfish: { won: 1 }, b_grouper: { won: 1 }, b_tuna: { won: 1 } };
+    k.g.newPreview();
   });
   await page.click('#treeBtn');
   await page.waitForTimeout(500);

@@ -110,6 +110,9 @@
     touch: !!(root.matchMedia && root.matchMedia('(pointer: coarse)').matches) || (navigator.maxTouchPoints || 0) > 0,
     useStick() { return this.touch && this.g && this.g.save.settings.ctrl !== 'touch'; },
     setMode(mode) {
+      $('forecast').classList.toggle('hidden', mode !== 'dock');
+      if (mode === 'dock') this.forecast();
+      if (mode !== 'cast') this.bossBar(null);
       const stick = mode === 'cast' && this.useStick();
       $('stick').classList.toggle('hidden', !stick);
       document.body.classList.toggle('stick-on', stick);
@@ -118,6 +121,80 @@
       $('castInfo').classList.toggle('hidden', mode !== 'cast');
       $('penRate').classList.toggle('hidden', mode === 'cast');
     },
+    // ---------- conditions forecast (dock) ----------
+    // chips for the next cast: time of day, weather, bait, and the guardian ahead. The preview
+    // run already carries the conditions, so what the chips say is what the cast gets.
+    forecast() {
+      const g = this.g, s = g.save, run = g.preview;
+      if (!run || !run.cond) return;
+      const c = run.cond, D = E.DATA;
+      const tm = D.TIMES.find((x) => x.id === c.time), wx = D.WEATHERS.find((x) => x.id === c.weather), bt = E.BAIT_BY[c.bait];
+      const gate = run.bosses.find((b) => b.gate);
+      const anyBait = D.BAITS.some((b) => b.id !== 'cacing' && E.baitOpen(s, b.id));
+      const key = [c.i, c.time, c.weather, c.bait, gate ? gate.id + gate.left : '', anyBait, KL.lang].join('|');
+      if (key === this._fc) return;
+      this._fc = key;
+      const timeCls = c.time === 'malam' ? 'chip-night' : c.time === 'senja' ? 'chip-dusk' : '';
+      const wxCls = c.weather === 'badai' ? 'chip-storm' : c.weather === 'hujan' ? 'chip-rain' : '';
+      let html = `<button class="chip ${timeCls}" id="fcTime">${ic(tm.icon)}<span>${KL.name(tm.name)}</span></button>`;
+      if (s.casts >= 8 || c.weather !== 'cerah') html += `<button class="chip ${wxCls}" id="fcWx">${ic(wx.icon)}<span>${KL.name(wx.name)}</span></button>`;
+      if (anyBait) html += `<button class="chip chip-bait" id="fcBait">${ic(bt.icon)}<span>${KL.name(bt.name)}</span></button>`;
+      if (gate) html += `<button class="chip chip-boss" id="fcBoss">${ic('crown')}<span>${KL.name(SPECIES[gate.sp].name)} <small>${gate.y} m</small></span></button>`;
+      $('forecast').innerHTML = html;
+      $('fcTime').onclick = () => { KL.Audio.click(); this.toast(null, KL.name(tm.name) + (c.moon ? ' · ' + t('moonNight') : ''), KL.name(tm.info)); };
+      if ($('fcWx')) $('fcWx').onclick = () => { KL.Audio.click(); this.toast(null, KL.name(wx.name), `${KL.name(wx.info)}<br><span class="forecast-next">${this.nextWeather(c.i)}</span>`); };
+      if ($('fcBait')) $('fcBait').onclick = () => { KL.Audio.click(); this.baitPicker(); };
+      if ($('fcBoss')) $('fcBoss').onclick = () => { KL.Audio.click(); this.bossInfo(gate); };
+    },
+    // when the weather changes next, from the deterministic schedule
+    nextWeather(i) {
+      const now = E.weatherAt(i);
+      for (let k = 1; k <= 24; k++) {
+        const w = E.weatherAt(i + k);
+        if (w.id !== now.id) return t('nextWeather', { w: KL.name(w.name), n: k });
+      }
+      return '';
+    },
+    baitPicker() {
+      const s = this.g.save;
+      const rows = E.DATA.BAITS.map((b) => {
+        const open = E.baitOpen(s, b.id);
+        return `<li><button data-bait="${b.id}" class="${s.bait === b.id ? 'on' : ''}" ${open ? '' : 'disabled'}>${ic(open ? b.icon : 'lock')}
+          <span><b>${KL.name(b.name)}</b><small>${open ? KL.name(b.info) : t('baitLocked', { z: KL.name(ZONES[b.zone].name) })}</small></span></button></li>`;
+      }).join('');
+      this.modal(t('baitPick'), `<ul class="bait-list">${rows}</ul>`, [{ label: t('back'), fn: () => {} }]);
+      document.querySelectorAll('[data-bait]').forEach((el) => {
+        el.onclick = () => {
+          if (!E.setBait(s, el.dataset.bait)) return;
+          KL.Audio.click();
+          this.g.onBait();
+          document.querySelectorAll('[data-bait]').forEach((x) => x.classList.toggle('on', x === el));
+        };
+      });
+    },
+    bossInfo(b) {
+      const sp = SPECIES[b.sp], d = b.def;
+      const z = KL.name(ZONES[d.zone].name);
+      const st = this.g.stats;
+      this.modal(KL.name(sp.name), `<div class="boss-card"><img class="spr" src="${KL.Render.url(sp.sprite, sp.shadow ? 'shadow' : '')}" alt="">
+        <div><p>${t('bossInfo', { name: KL.name(sp.name), z, d: d.y })}</p>
+        <p>${t('bossHp', { p: Math.round(b.left * 100) })} · ${t('bossShells', { n: d.shells })}</p>
+        <p class="muted">${t('bossNeed', { l: KL.fmt(st.line) })}</p></div></div>`, [{ label: t('back'), fn: () => {} }]);
+    },
+    // fight HUD: the guardian's name and stamina; the frame turns orange while it warns of a move
+    bossBar(b) {
+      const el = $('bossBar');
+      if (!b) { if (!el.classList.contains('hidden')) { el.classList.add('hidden'); document.body.classList.remove('fighting'); } this._bb = null; return; }
+      if (this._bb !== b) {
+        this._bb = b;
+        document.body.classList.add('fighting');
+        $('bossName').textContent = KL.name(SPECIES[b.sp].name);
+        el.classList.remove('hidden');
+      }
+      $('bossHp').style.width = (100 * Math.max(0, b.hp) / b.hpMax).toFixed(1) + '%';
+      el.classList.toggle('tele', !!b.tele);
+    },
+
     catchCount(n, cap) { $('catchCount').textContent = `${n}/${cap}`; },
     // line still on the spool while going down; red when a fifth or less is left
     // (hidden once the hook turns: then it is reeling in)
@@ -166,7 +243,7 @@
       // group identical catches (same species + mutation) to keep the list short
       const groups = [];
       for (const it of h.items) {
-        const key = it.sp + ':' + it.mut + (it.cat ? 'c' : '');
+        const key = it.sp + ':' + it.mut + (it.cat ? 'c' : '') + (it.boss ? 'b' : '');
         let gr = groups.find((x) => x.key === key);
         if (!gr) groups.push((gr = { key, it, n: 0, value: 0 }));
         gr.n += it.twin ? 2 : 1; gr.value += it.value;
@@ -180,13 +257,14 @@
         li.style.animationDelay = Math.min(i, 12) * 0.05 + 's';
         const v = mut === 1 ? 'gold' : mut === 2 ? 'prism2' : sp.shadow ? 'shadow' : '';
         li.innerHTML = `<img class="spr" src="${KL.Render.url(sp.sprite, v)}" alt="">
-          <div><span class="nm">${KL.name(sp.name)}${gr.n > 1 ? ' x' + gr.n : ''}</span>${mut >= 0 ? `<span class="tag tag-${MUTATIONS[mut].id}">${t(MUT_KEY[mut])}</span>` : ''}${isNew ? `<span class="tag tag-new">${t('newSpecies')}</span>` : ''}${gr.it.cat ? `<span class="tag">${t('catBonus')}</span>` : ''}</div>
+          <div><span class="nm">${KL.name(sp.name)}${gr.n > 1 ? ' x' + gr.n : ''}</span>${mut >= 0 ? `<span class="tag tag-${MUTATIONS[mut].id}">${t(MUT_KEY[mut])}</span>` : ''}${isNew ? `<span class="tag tag-new">${t('newSpecies')}</span>` : ''}${gr.it.cat ? `<span class="tag">${t('catBonus')}</span>` : ''}${gr.it.boss ? `<span class="tag tag-gold">${t('bossTag')}</span>` : ''}</div>
           <span class="v">${KL.fmt(gr.value * g.statsHaulMult(h))}</span>`;
         list.appendChild(li);
       });
       const bonus = [];
       if (h.fullB) bonus.push(`${t('fullBonus')} +${Math.round(h.fullB * 100)}%`);
       if (h.bulkB) bonus.push(`${t('bulkBonus')} +${Math.round(h.bulkB * 100)}%`);
+      if (h.cond && h.cond.val > 1) bonus.push(`${t('stormBonus')} +${Math.round((h.cond.val - 1) * 100)}%`);
       $('haulBonus').innerHTML = bonus.map((b) => `<span>${b}</span>`).join('');
       $('haulTotal').innerHTML = `${ic('coin')}${KL.fmt(h.total)}`;
       $('haulTake').onclick = () => { this.closeSheet('haul'); onTake(1); };

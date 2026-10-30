@@ -43,14 +43,18 @@ re-saved encoded; old `.json` save files are no longer accepted. The same two bu
 
 - Obstacles: rocks to steer around, sea urchins and mines that end a dive (a mine on the way
   up knocks a fish off the hook), ghost nets that slow you, currents and bubble vents that push.
-- 79 species in 6 depth zones (Estuary, Reef, Open Blue, Twilight, Trench, Weird Deep), 4
+- 79 species (plus 5 guardians) in 6 depth zones (Estuary, Reef, Open Blue, Twilight, Trench, Weird Deep), 4
   mutations (Big, Golden, Prismatic, Titan), a Fishdex with mastery stars.
+- Five zone guardians (boss fish): each one blocks the way to the next zone until you win a
+  tug-of-war fight against it; a guardian that gets away keeps the stamina it lost.
+- Every cast has a time of day and a weather (shown as a forecast on the dock), and you pick a
+  bait once the reef is open. See `docs/DESIGN.md` sections 14 and 15.
 - Skill tree with six branches, mystery "?" nodes, pearl skills after the first new season.
 - Fish pen idle income and capped offline earnings.
 - Auto Angler skill that plays for you (the same bot the balance simulation uses).
 - Generative lo-fi music and synthesized sound effects; the music muffles and darkens as the
   hook goes deeper.
-- 57 achievements in five rarity tiers, a lifetime activity page, and a share card (image for
+- 60 achievements in five rarity tiers, a lifetime activity page, and a share card (image for
   Instagram and WhatsApp, or the phone's share sheet).
 - Shop with 8 gnome outfits and 8 boats (sampan, jukung, pinisi, mini sub, ghost ship...),
   bought with shells from achievements; the one you wear gives a small perk.

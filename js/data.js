@@ -98,6 +98,13 @@
     S('s_puffer',  'pufferfish',    'Buntal Bulan',    'Moon Puffer',     36000, 4, 1120, 99999, 3, { shadow: true, puffer: true }),
     S('s_jelly',   'jellyfish',     'Ubur-ubur Hampa', 'Void Jelly',      52000, 3, 1180, 99999, 2, { shadow: true, glow: '#7af0ff' }),
     S('s_coela',   'coelacanth',    'Penjaga Jurang',  'Deep Warden',     95000, 1, 1250, 99999, 2.5, { shadow: true, rare: true }),
+
+    // zone guardians (see BOSSES): never spawn as normal fish, only in a boss fight
+    S('b_catfish', 'catfish',       'Lele Raja',       'King Catfish',    160,    0, 26, 26, 5, { boss: true }),
+    S('b_grouper', 'mo_grouper',    'Kerapu Karang Tua', 'Old Reef Grouper', 2200, 0, 86, 86, 7, { boss: true }),
+    S('b_tuna',    'mo_tuna',       'Tuna Kilat',      'Lightning Tuna',  30000,  0, 214, 214, 11, { boss: true }),
+    S('b_manta',   'mo_manta',      'Manta Bayangan',  'Shadow Manta',    6e5,    0, 472, 472, 9, { boss: true, glow: '#8ff7ff' }),
+    S('b_angler',  'mo_angler',     'Pemancing Purba', 'Elder Angler',    1.6e7,  0, 1040, 1040, 8, { boss: true, glow: '#ff8ad8' }),
   ];
 
   // Mutations roll per fish when it spawns. chance is per fish before luck bonuses.
@@ -106,6 +113,55 @@
     { id: 'gold',   name: { id: 'Emas', en: 'Golden' },        mult: 5,  chance: 0.012,  scale: 1 },
     { id: 'prism',  name: { id: 'Pelangi', en: 'Prismatic' },  mult: 15, chance: 0.0025, scale: 1 },
     { id: 'titan',  name: { id: 'Raksasa', en: 'Titan' },      mult: 40, chance: 0.0005, scale: 3 },
+  ];
+
+  // Zone guardians. Each sits in an arena a few metres above the zone it guards; until it is
+  // beaten the line cannot go past it, and reaching the arena starts the fight. y: arena depth,
+  // hp: stamina in reel-metres (drained by reeling while you pull against its run), spd: how fast
+  // it swims sideways (m/s), pull: line it takes per second while running free, as a share of
+  // its depth (so the slack you need grows with the arena), turn: seconds between runs [min, max],
+  // moves: what it can do on a turn (run: change direction, dash: a short burst at 1.8x,
+  // dive: pulls down 6 m, feint: flashes but keeps going). shells: paid once, on the first win.
+  const BOSSES = [
+    { id: 'b_catfish', zone: 1, y: 26,   hp: 70,   spd: 6,  pull: 0.12, turn: [1.6, 2.6], moves: ['run'],                         shells: 10 },
+    { id: 'b_grouper', zone: 2, y: 86,   hp: 300,  spd: 8,  pull: 0.1, turn: [1.3, 2.2], moves: ['run', 'run', 'dash'],          shells: 15 },
+    { id: 'b_tuna',    zone: 3, y: 214,  hp: 600,  spd: 12, pull: 0.08, turn: [1.0, 1.8], moves: ['run', 'dash', 'dash'],         shells: 25 },
+    { id: 'b_manta',   zone: 4, y: 472,  hp: 1200, spd: 10, pull: 0.08, turn: [1.0, 1.7], moves: ['run', 'dash', 'dive'],         shells: 40 },
+    { id: 'b_angler',  zone: 5, y: 1040, hp: 1900, spd: 11, pull: 0.07, turn: [0.8, 1.5], moves: ['run', 'dash', 'dive', 'feint'], shells: 60 },
+  ];
+
+  // Cast conditions: the dock shows the next cast's conditions, so they are a forecast.
+  // Time of day turns every 3 casts; weather holds for 4 casts. Effects are multipliers.
+  //   dens: fish density, rare: rare species weight, glow: glowing species weight,
+  //   mut: mutation chance, spd: fish speed, val: value of the haul, cur: current strength
+  const TIMES = [
+    { id: 'pagi',  icon: 'sun',  name: { id: 'Pagi', en: 'Morning' }, fx: { shallow: 1.3 },
+      info: { id: 'Ikan ramai di dekat permukaan (+30% ikan di atas 90 m).', en: 'Fish crowd near the surface (+30% fish above 90 m).' } },
+    { id: 'siang', icon: 'sun',  name: { id: 'Siang', en: 'Midday' }, fx: { reel: 1.1 },
+      info: { id: 'Air jernih: tarik ke atas 10% lebih cepat.', en: 'Clear water: reel up 10% faster.' } },
+    { id: 'senja', icon: 'dusk', name: { id: 'Senja', en: 'Dusk' },   fx: { rare: 1.6 },
+      info: { id: 'Jam makan: ikan langka 60% lebih sering.', en: 'Feeding time: rare fish 60% more often.' } },
+    { id: 'malam', icon: 'moon', name: { id: 'Malam', en: 'Night' },  fx: { glow: 2.2, mut: 1.4 },
+      info: { id: 'Ikan bercahaya 2x lebih sering, mutasi +40%.', en: 'Glowing fish 2x as common, mutations +40%.' } },
+  ];
+  const WEATHERS = [
+    { id: 'cerah', icon: 'sun',   w: 60, name: { id: 'Cerah', en: 'Clear' }, fx: {},
+      info: { id: 'Laut tenang.', en: 'Calm sea.' } },
+    { id: 'hujan', icon: 'rain',  w: 28, name: { id: 'Hujan', en: 'Rain' },  fx: { dens: 1.2, spd: 1.25 },
+      info: { id: 'Ikan lebih banyak (+20%) tapi lebih gesit.', en: 'More fish (+20%), but they swim faster.' } },
+    { id: 'badai', icon: 'storm', w: 12, name: { id: 'Badai', en: 'Storm' }, fx: { val: 1.5, cur: 1.8, curMore: 1 },
+      info: { id: 'Tangkapan +50% koin, tapi arus jauh lebih kuat dan sering (memakan tali).', en: 'Haul +50% coins, but currents are much stronger and more common (they eat line).' } },
+  ];
+  // Bait: picked at the dock, free, a side-grade. Each one bends what bites.
+  const BAITS = [
+    { id: 'cacing', zone: 0, icon: 'worm',  name: { id: 'Cacing', en: 'Worm' },        fx: {},
+      info: { id: 'Umpan biasa, semua ikan mau.', en: 'Plain bait, everything bites.' } },
+    { id: 'pelet',  zone: 1, icon: 'pellet', name: { id: 'Pelet', en: 'Pellets' },     fx: { dens: 1.35, rare: 0.6 },
+      info: { id: '+35% ikan, tapi ikan langka lebih jarang. Cocok untuk memenuhi peti.', en: '+35% fish, but fewer rare ones. Good for filling the crate.' } },
+    { id: 'udang',  zone: 2, icon: 'shrimp', name: { id: 'Udang', en: 'Shrimp' },      fx: { rare: 1.8, dens: 0.75 },
+      info: { id: 'Ikan langka 80% lebih sering, tapi ikan 25% lebih sedikit.', en: 'Rare fish 80% more often, but 25% fewer fish.' } },
+    { id: 'lampu',  zone: 3, icon: 'lure',   name: { id: 'Umpan Lampu', en: 'Glow Lure' }, fx: { glow: 2.5, mut: 1.25, shallow: 0.6 },
+      info: { id: 'Ikan bercahaya 2.5x, mutasi +25%, tapi ikan dangkal kabur (-40% di atas 90 m).', en: 'Glowing fish 2.5x, mutations +25%, but shallow fish flee (-40% above 90 m).' } },
   ];
 
   // Skill tree. Grid positions (x, y) in node units; root at 0,0.
@@ -179,7 +235,7 @@
 
   // Cost of a node = TIER[t] * c * g^level. TIER is roughly "15 casts of income" at the start of
   // each zone; scripts/balance.js --tune fits it to the pacing targets in docs/BALANCE.md.
-  const TIER = [43, 440, 790000, 150000000, 7500000000, 380000000000];
+  const TIER = [55, 770, 1700000, 510000000, 26000000000, 1300000000000];
   NODES.forEach((n) => { if (n.t != null) n.k = n.c; });
   function applyTier(T) {
     T.forEach((v, i) => { TIER[i] = v; });
@@ -197,6 +253,8 @@
     A('cast10',    0, 'hook',    'casts',    10,    'Mulai Terbiasa',      'Getting the Hang of It'),
     A('fish100',   0, 'fish',    'fish',     100,   'Ember Penuh',         'Full Bucket'),
     A('reef',      0, 'wave',    'depth',    30,    'Halo, Terumbu',       'Hello, Reef'),
+    A('boss1',     1, 'crown',   'boss',     1,     'Penjaga Pertama',     'First Guardian'),
+    A('storm10',   1, 'bolt',    'storm',    10,    'Pelaut Badai',        'Storm Sailor'),
     A('sp10',      0, 'book',    'species',  10,    'Pencatat Ikan',       'Fish Notes'),
     A('coin1k',    0, 'coin',    'coins',    1e3,   'Uang Jajan',          'Pocket Money'),
     A('junk10',    0, 'recycle', 'junk',     10,    'Pembersih Laut',      'Sea Sweeper'),
@@ -235,6 +293,7 @@
 
     A('fish100k',  3, 'fish',    'fish',     1e5,   'Raja Nelayan',        'Fisher King'),
     A('weird',     3, 'eye',     'depth',    1050,  'Yang Aneh-Aneh',      'Something Weird'),
+    A('boss5',     3, 'crown',   'boss',     5,     'Penakluk Laut',       'Sea Conqueror'),
     A('sp60',      3, 'book',    'species',  60,    'Ensiklopedia Hidup',  'Living Encyclopedia'),
     A('coin1t',    3, 'coin',    'coins',    1e12,  'Triliuner Samudra',   'Ocean Trillionaire'),
     A('titan1',    3, 'crown',   'titan',    1,     'Ikan Raksasa',        'Titan Catch'),
@@ -287,6 +346,6 @@
 
   const MASTERY = [10, 50, 250, 1000]; // catches per species; each step: +25% for that species
 
-  const D = { ZONES, SPECIES, MUTATIONS, NODES, MASTERY, TIER, applyTier, ACH, SHELL_PAY, GEAR };
+  const D = { ZONES, SPECIES, MUTATIONS, NODES, MASTERY, TIER, applyTier, ACH, SHELL_PAY, GEAR, BOSSES, TIMES, WEATHERS, BAITS };
   if (typeof module !== 'undefined') module.exports = D; else (root.KL = root.KL || {}).DATA = D;
 })(this);

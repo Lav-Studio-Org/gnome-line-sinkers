@@ -4,7 +4,9 @@
   'use strict';
   const D = typeof module !== 'undefined' ? require('./data.js') : root.KL.DATA;
   const ATLAS = typeof module !== 'undefined' ? require('./atlas.js') : root.KL.ATLAS;
-  const { ZONES, SPECIES, MUTATIONS, NODES, MASTERY, ACH, SHELL_PAY, GEAR } = D;
+  const { ZONES, SPECIES, MUTATIONS, NODES, MASTERY, ACH, SHELL_PAY, GEAR, BOSSES, TIMES, WEATHERS, BAITS } = D;
+  const BOSS_BY = Object.fromEntries(BOSSES.map((b) => [b.id, b]));
+  const BAIT_BY = Object.fromEntries(BAITS.map((b) => [b.id, b]));
   const GEAR_BY = Object.fromEntries(GEAR.map((g) => [g.id, g]));
   const NODE = Object.fromEntries(NODES.map((n) => [n.id, n]));
   const SP = Object.fromEntries(SPECIES.map((s, i) => [s.id, i]));
@@ -39,6 +41,8 @@
       settings: { sound: true, music: true, lang: null, haptics: true, orient: 'auto', ctrl: 'stick' },
       shells: 0, shellsEver: 0, ach: {}, rec: newRec(),
       gear: { owned: { classic: 1, sampan: 1 }, skin: 'classic', boat: 'sampan' },
+      // zone guardians: { won, left (stamina fraction carried between attempts), free (grandfathered) }
+      bosses: {}, bait: 'cacing',
     };
   }
   // lifetime activity record (never reset by a new season); feeds achievements and the share card
@@ -46,6 +50,7 @@
     return {
       fish: 0, junk: 0, mut: [0, 0, 0, 0], bestHaul: 0, bestHaulFish: 0, bestFish: null, full: 0,
       boom: 0, sting: 0, lost: 0, guard: 0, moon: 0, metres: 0, castTime: 0, days: 0, lastDay: '', first: 0,
+      storm: 0, fights: 0, escapes: 0,
     };
   }
   function migrate(s) {
@@ -60,6 +65,12 @@
     if (!out.gear.owned[out.gear.skin]) out.gear.skin = 'classic';
     if (!out.gear.owned[out.gear.boat]) out.gear.boat = 'sampan';
     out.ach = out.ach || {};
+    // saves from before the guardians: zones already reached stay open, their boss is a rematch
+    if (!s || !s.bosses) {
+      out.bosses = {};
+      for (const b of BOSSES) if (out.zone >= b.zone) out.bosses[b.id] = { free: 1 };
+    }
+    if (!BAIT_BY[out.bait]) out.bait = 'cacing';
     return out;
   }
 
@@ -192,15 +203,15 @@
     return sizeCache[name];
   }
 
-  function pickSpecies(r, y, rare) {
+  function pickSpecies(r, y, rare, glow) {
     let tot = 0;
     const cand = [];
     for (let i = 0; i < SPECIES.length; i++) {
       const sp = SPECIES[i];
-      if (y < sp.d[0] || y > sp.d[1]) continue;
+      if (sp.boss || y < sp.d[0] || y > sp.d[1]) continue;
       // fade in over the first 12 m so zones blend
       const fade = Math.min(1, (y - sp.d[0]) / 12 + 0.15);
-      const w = sp.w * fade * (sp.rare ? rare : 1);
+      const w = sp.w * fade * (sp.rare ? rare : 1) * (sp.glow ? glow || 1 : 1);
       cand.push([i, w]);
       tot += w;
     }
@@ -217,7 +228,7 @@
   }
 
   function makeFish(r, st, y, width, mutMult) {
-    const spi = pickSpecies(r, y, st.rare);
+    const spi = pickSpecies(r, y, st.rare, st.glow);
     const sp = SPECIES[spi];
     const mut = sp.junk ? -1 : rollMutation(r, mutMult);
     const scale = mut >= 0 ? MUTATIONS[mut].scale : 1;
@@ -225,7 +236,7 @@
     const dir = r() < 0.5 ? -1 : 1;
     return {
       sp: spi, mut, scale, y, x: 2 + r() * (width - 4), dir,
-      vx: dir * sp.spd * (0.6 + r() * 0.6),
+      vx: dir * sp.spd * (0.6 + r() * 0.6) * (st.fishSpd || 1),
       hw: (w * scale) / PXM / 2 * 0.8, hh: (h * scale) / PXM / 2 * 0.75,
       st: 0, ph: r() * 6.28, scare: 0, twin: false,
     };
@@ -255,13 +266,15 @@
     for (const k in mix) { x -= mix[k]; if (x <= 0) return k; }
     return 'rock';
   }
-  function makeObstacles(seed, width, end, tutorial) {
+  // wx: weather (cur scales current strength, curMore adds that much weight to currents)
+  function makeObstacles(seed, width, end, tutorial, wx) {
     const r = rng((seed ^ 0x5bd1e995) >>> 0);
     const obs = [];
+    const curK = wx ? wx.cur : 1, curMore = wx ? wx.curMore * 2 : 0;
     let y = tutorial ? 26 : 12;
     while (y < end) {
       const z = zoneAt(y);
-      const k = pick(r, OBS_MIX[z]);
+      const k = pick(r, curMore ? Object.assign({}, OBS_MIX[z], { cur: (OBS_MIX[z].cur || 0) + curMore }) : OBS_MIX[z]);
       if (k === 'rock' || k === 'urchin') {
         // half the rocks grow out of the cliff walls, the rest float free
         const wall = r() < 0.5;
@@ -278,7 +291,7 @@
       } else if (k === 'net') {
         if (y > 18) obs.push({ k: 'net', x: 8 + r() * (width - 16), y, w: 7 + r() * 9, h: 3 + r() * 4 });
       } else if (k === 'cur') {
-        obs.push({ k: 'cur', x: width / 2, y, h: 3 + r() * 3, v: (r() < 0.5 ? -1 : 1) * (5 + r() * 4 + z * 1.5) });
+        obs.push({ k: 'cur', x: width / 2, y, h: 3 + r() * 3, v: (r() < 0.5 ? -1 : 1) * (5 + r() * 4 + z * 1.5) * curK });
       } else if (k === 'vent') {
         obs.push({ k: 'vent', x: 8 + r() * (width - 16), y, w: 3 + r() * 3, h: 14 + r() * 16 });
       }
@@ -298,14 +311,85 @@
   }
   const near = [];
 
+  // ---------- cast conditions ----------
+  // Time of day turns every 3 casts and the weather holds for 4. Both come from the cast number
+  // only, so the dock can show the next cast's conditions (and the ones after it) as a forecast
+  // that is never wrong. Bait is the player's pick. See docs/DESIGN.md section 15.
+  function hash32(n) {
+    n = Math.imul((n >>> 0) ^ (n >>> 16), 0x45d9f3b);
+    n = Math.imul(n ^ (n >>> 16), 0x45d9f3b);
+    return (n ^ (n >>> 16)) >>> 0;
+  }
+  const W_TOT = WEATHERS.reduce((t, w) => t + w.w, 0);
+  function weatherAt(i) {
+    if (i < 8) return WEATHERS[0]; // the first casts are always calm
+    let x = (hash32(Math.floor(i / 4) * 7919 + 13) / 4294967296) * W_TOT;
+    for (const w of WEATHERS) { x -= w.w; if (x < 0) return w; }
+    return WEATHERS[0];
+  }
+  const timeAt = (i, moon) => (moon ? TIMES[3] : TIMES[Math.floor(i / 3) % TIMES.length]);
+  const baitOpen = (s, id) => !!BAIT_BY[id] && s.zone >= BAIT_BY[id].zone;
+  function setBait(s, id) {
+    if (!baitOpen(s, id)) return false;
+    s.bait = id;
+    return true;
+  }
+  const isMoon = (s, i) => { const m = moonEvery(s); return m > 0 && (i + 1) % m === 0; };
+  // conditions of cast number i (s.casts is the next one)
+  function castCond(s, i) {
+    const moon = isMoon(s, i);
+    const time = timeAt(i, moon), weather = weatherAt(i);
+    const bait = baitOpen(s, s.bait) ? BAIT_BY[s.bait] : BAITS[0];
+    const fx = { dens: 1, rare: 1, glow: 1, mut: 1, spd: 1, val: 1, cur: 1, reel: 1, shallow: 1, curMore: 0 };
+    for (const c of [time, weather, bait]) {
+      for (const k in c.fx) { if (k === 'curMore') fx[k] += c.fx[k]; else fx[k] *= c.fx[k]; }
+    }
+    return { i, moon, time: time.id, weather: weather.id, bait: bait.id, fx };
+  }
+
+  // ---------- zone guardians ----------
+  const BOSS_SCALE = 3.4;
+  const TELE = 0.45;          // the warning flash before a guardian's move (s)
+  const bossState = (s, id) => (s.bosses && s.bosses[id]) || {};
+  const bossOpen = (s, id) => { const b = bossState(s, id); return !!(b.won || b.free); };
+  // the guardian that blocks the way down, or null when every gate is open
+  function gateBoss(s) {
+    for (const b of BOSSES) if (!bossOpen(s, b.id)) return b;
+    return null;
+  }
+  // guardians in a cast: every open one whose arena the line can reach (a rematch, only when the
+  // hook touches it) and the first closed one, which is a floor: reaching it starts the fight
+  function makeBosses(s, seed, width, end) {
+    const r = rng((seed ^ 0xb055f15) >>> 0);
+    const out = [];
+    for (const d of BOSSES) {
+      const gate = !bossOpen(s, d.id);
+      if (!gate && d.y > end) continue;
+      const spi = SP[d.id], sp = SPECIES[spi];
+      const [w, h] = spriteSize(sp.sprite);
+      const left = gate ? (bossState(s, d.id).left || 1) : 1;
+      out.push({
+        id: d.id, def: d, sp: spi, gate, y: d.y, x: 15 + r() * (width - 30), dir: r() < 0.5 ? -1 : 1,
+        hw: (w * BOSS_SCALE) / PXM / 2 * 0.8, hh: (h * BOSS_SCALE) / PXM / 2 * 0.75, scale: BOSS_SCALE,
+        hpMax: d.hp, hp: d.hp * left, hp0: 0, left, t: 0, tele: 0, move: null, dashT: 0, dive: 0, c: 0, ft: 0, ph: r() * 6,
+      });
+      if (gate) break;
+    }
+    return out;
+  }
+
   function newRun(s, opts) {
     const o = opts || {};
     const st = stats(s);
     const width = o.width || 100;
     const seed = o.seed != null ? o.seed : (s.seed = (s.seed * 1103515245 + 12345) >>> 0);
     const r = rng(seed);
-    const moon = st.moonEvery > 0 && (s.casts + 1) % st.moonEvery === 0;
-    const mutMult = st.mut * (moon ? 3 : 1);
+    const cond = castCond(s, s.casts);
+    const wx = cond.fx;
+    const moon = cond.moon;
+    st.rare *= wx.rare; st.glow = wx.glow; st.fishSpd = wx.spd;
+    st.reel *= wx.reel; st.valueMult *= wx.val;
+    const mutMult = st.mut * wx.mut * (moon ? 3 : 1);
     const fish = [];
     let y = 5;
     const end = st.line + 8;
@@ -331,7 +415,7 @@
     }
     while (y < end) {
       const z = zoneAt(y);
-      const dens = (y < 45 ? 0.42 : 0.24 + 0.05 * z) * (width / 100);
+      const dens = (y < 45 ? 0.42 : 0.24 + 0.05 * z) * (width / 100) * wx.dens * (y < 90 ? wx.shallow : 1);
       y += (0.4 + r() * 1.2) / dens;
       if (y < end) fish.push(makeFish(r, st, y, width, mutMult));
     }
@@ -345,8 +429,13 @@
     }
     fish.sort((a, b) => a.y - b.y);
     const x0 = o.x != null ? Math.max(1, Math.min(width - 1, o.x)) : width * 0.5;
+    const bosses = makeBosses(s, seed, width, end);
+    const gate = bosses.find((b) => b.gate);
+    // arenas are open water: no rocks, spikes or mines within 9 m of a guardian
+    const obs = makeObstacles(seed, width, end, s.casts < 3, wx).filter((ob) => !bosses.some((b) => Math.abs(ob.y - b.y) < 9));
     return {
-      st, r, seed, width, moon, fish, end, keep, obs: makeObstacles(seed, width, end, s.casts < 3), events: [], t: 0,
+      st, r, seed, width, moon, cond, fish, end, keep, obs, bosses, floor: gate ? gate.y : Infinity, fight: null, trophy: null, bossRes: null,
+      events: [], t: 0,
       phase: 'down', x: x0, y: 0, vx: 0, vy: 0, maxY: 0, paid: 0, guard: st.guard,
       caught: [], lost: 0, cnt: { boom: 0, sting: 0, guard: 0 }, slowLeft: st.slow * 0.7, slowT: 0, timeScale: 1, zone: 0, inNet: null, inCur: null,
     };
@@ -391,7 +480,10 @@
       if (f.x < -3) f.x = run.width + 3; else if (f.x > run.width + 3) f.x = -3;
       if (f.st === 2 && f.scare <= 0) f.st = 0;
     }
-    if (run.phase === 'down') stepDown(run, dt); else stepUp(run, dt);
+    for (const b of run.bosses) if (b !== run.fight && !b.won) swimBoss(run, b, dt);
+    if (run.phase === 'down') stepDown(run, dt);
+    else if (run.phase === 'fight') stepFight(run, dt);
+    else stepUp(run, dt);
     const z = zoneAt(run.y);
     if (z !== run.zone) { run.zone = z; run.events.push({ t: 'zone', z }); }
     return run;
@@ -434,6 +526,12 @@
         // cancel the part of the velocity that points into the rock
         const nx = dx / d, ny = dy / d, vn = run.vx * nx + run.vy * ny;
         if (vn < 0) { run.vx -= vn * nx; run.vy -= vn * ny; }
+        // reeling up into the underside of a rock: slide off towards open water, so a hook
+        // pressed against a wall rock cannot get pinned there
+        if (run.phase === 'up' && ny > 0.2) {
+          const wall = o.x < o.r ? 1 : o.x > run.width - o.r ? -1 : 0;
+          run.x += (wall || (dx >= 0 ? 1 : -1)) * 0.2;
+        }
       }
     }
     run.x = Math.max(1, Math.min(run.width - 1, run.x));
@@ -497,9 +595,15 @@
     run.y += (run.vy * env.slow - env.lift) * dt;
     if (run.y < 2) { run.y = 2; if (run.vy < 0) run.vy = 0; }
     solid(run);
+    // a closed guardian is a floor: the line cannot pass its arena
+    if (run.y > run.floor) run.y = run.floor;
     payOut(run, x0, y0);
     if (run.paid >= st.line) { run.paid = st.line; turn(run, 'bottom'); return; }
+    if (run.y >= run.floor) { startFight(run, run.bosses.find((b) => b.gate)); return; }
     if (fast) return;
+    for (const b of run.bosses) {
+      if (!b.gate && !b.won && !b.gone && Math.abs(run.y - b.y) < b.hh + HIT_R && Math.abs(run.x - b.x) < b.hw + HIT_R) { startFight(run, b); return; }
+    }
     if (hazards(run)) return;
     const look = Math.max(0, run.vy);
     for (const f of run.fish) {
@@ -527,6 +631,92 @@
           return;
         }
       }
+    }
+  }
+
+  // a guardian that is not fighting cruises its arena slowly
+  function swimBoss(run, b, dt) {
+    b.ph += dt * 2;
+    b.x += b.dir * b.def.spd * 0.25 * dt;
+    if (b.x < 8) { b.x = 8; b.dir = 1; } else if (b.x > run.width - 8) { b.x = run.width - 8; b.dir = -1; }
+  }
+
+  function startFight(run, b) {
+    run.phase = 'fight';
+    run.fight = b;
+    // a gate guardian lunges for the hook; a rematch is where you touched it
+    if (b.gate) b.x = Math.max(6, Math.min(run.width - 6, run.x));
+    b.y = run.y = b.def.y;
+    // the strike pulls the line tight: what is out is the straight drop, the rest is slack to fight
+    // with. The reel's drag always gives at least 15% of the depth, so arriving on your last metres
+    // of line is hard but never hopeless; every metre of line past that is extra room.
+    run.paid = Math.min(b.y, run.st.line - b.y * 0.15);
+    b.hp0 = b.hp;
+    b.t = 1.2; b.tele = 0; b.dashT = 0; b.dive = 0; b.ft = 0;
+    b.dir = b.x < run.width / 2 ? 1 : -1; // runs for open water first
+    run.vx = 0; run.vy = 0;
+    run.events.push({ t: 'bossStart', b });
+  }
+
+  // The fight: the guardian runs left or right and every metre it runs takes line. Pull the other
+  // way (aim the hook on the far side of where it is heading) to slow it down, reel line back in
+  // and tire it faster. Every few seconds it flashes, then turns (run), bursts (dash), pulls down
+  // (dive) or only pretends (feint). It is caught when its stamina is gone; it escapes when the
+  // line runs out. See docs/DESIGN.md section 14.
+  function stepFight(run, dt) {
+    const st = run.st, b = run.fight, d = b.def;
+    b.ft += dt;
+    b.t -= dt;
+    if (!b.tele && b.t <= TELE) {
+      b.tele = 1;
+      b.move = d.moves[Math.floor(run.r() * d.moves.length)];
+      run.events.push({ t: 'bossTele', b });
+    }
+    if (b.t <= 0) {
+      b.tele = 0;
+      b.t = d.turn[0] + run.r() * (d.turn[1] - d.turn[0]);
+      if (b.move !== 'feint') b.dir = -b.dir;
+      if (b.move === 'dash') b.dashT = 0.8;
+      if (b.move === 'dive') b.dive = 6;
+      run.events.push({ t: 'bossMove', b, move: b.move });
+    }
+    // counter: 0 when the aim follows the guardian, 1 when it is 4 m or more on the other side
+    const c = Math.max(0, Math.min(1, -(run.tx - b.x) * b.dir / 4));
+    b.c += (c - b.c) * (1 - Math.exp(-dt * 10));
+    const ramp = Math.min(1, b.ft / 0.8);
+    const spd = d.spd * (b.dashT > 0 ? 1.8 : 1) * (1 - 0.75 * b.c) * ramp;
+    b.dashT -= dt;
+    const dx = b.dir * spd * dt;
+    b.x += dx;
+    if (b.x < 4) { b.x = 4; b.dir = 1; } else if (b.x > run.width - 4) { b.x = run.width - 4; b.dir = -1; }
+    let dy = 0;
+    if (b.dive > 0) { dy = Math.min(b.dive, 6 * dt); b.dive -= dy; }
+    else if (b.y > d.y) dy = -Math.min(b.y - d.y, 3 * b.c * dt);
+    b.y += dy;
+    // line: the guardian takes `pull` of its depth per second while it runs free, less the harder
+    // you pull against it, and you reel some back while you hold it. Bursts and dives pull double.
+    const pull = d.pull * d.y * (b.dashT > 0 ? 1.8 : 1) * (dy > 0 ? 2 : 1) * ramp;
+    run.paid += pull * ((1 - 0.75 * b.c) - 0.6 * b.c) * dt;
+    run.paid = Math.max(run.paid, Math.min(b.y, run.st.line - b.y * 0.15));
+    b.hp -= st.reel * (0.2 + 0.8 * b.c) * dt;
+    run.x = b.x; run.y = b.y; run.vx = dx / Math.max(dt, 1e-6);
+    if (b.hp <= 0) {
+      b.hp = 0; b.won = true;
+      run.trophy = { sp: b.sp, mut: -1, twin: false, x: b.x, y: b.y, boss: b.id };
+      run.bossRes = { id: b.id, win: true, gate: b.gate, left: 0 };
+      run.floor = Infinity;
+      run.events.push({ t: 'bossWin', b });
+      run.fight = null;
+      turn(run, 'boss');
+    } else if (run.paid >= st.line) {
+      // it tires a little for good: half of the stamina taken this fight stays taken
+      const left = Math.max(0.05, (b.hp + 0.5 * (b.hp0 - b.hp)) / b.hpMax);
+      b.left = left; b.hp = b.hpMax * left; b.gone = true;
+      run.paid = st.line;
+      run.bossRes = { id: b.id, win: false, gate: b.gate, left };
+      run.events.push({ t: 'bossEscape', b });
+      run.fight = null;
+      turn(run, 'escape');
     }
   }
 
@@ -594,6 +784,8 @@
       cat = { sp: best.sp, mut: best.mut, twin: false, value: best.value / (best.twin ? 2 : 1), cat: true };
       items.push(cat);
     }
+    // a guardian rides up on the hook; it does not take a crate slot and the cat leaves it alone
+    if (run.trophy) items.push({ sp: run.trophy.sp, mut: -1, twin: false, value: fishValue(s, st, run.trophy), boss: true });
     const base = items.reduce((t, i) => t + i.value, 0);
     const fullB = run.caught.length >= st.cap ? st.full : 0;
     const bulkB = st.bulk * items.length;
@@ -601,6 +793,7 @@
     return {
       items, base, fullB, bulkB, total, depth: Math.floor(run.maxY), moon: run.moon, cat: !!cat,
       full: run.caught.length >= st.cap, cnt: Object.assign({ lost: run.lost }, run.cnt), time: run.t,
+      boss: run.bossRes, cond: run.cond && { time: run.cond.time, weather: run.cond.weather, bait: run.cond.bait, val: run.cond.fx.val },
     };
   }
 
@@ -640,8 +833,24 @@
     if (h.cnt) { rec.boom += h.cnt.boom; rec.sting += h.cnt.sting; rec.lost += h.cnt.lost; rec.guard += h.cnt.guard; }
     rec.metres += h.depth || 0;
     rec.castTime += h.time || 0;
+    if (h.cond && h.cond.weather === 'badai') rec.storm++;
+    // guardians: the first win opens the gate for good and pays shells; a gate guardian that got
+    // away keeps the stamina it lost, so every attempt gets you closer
+    let bossFirst = null;
+    if (h.boss) {
+      if (!s.bosses) s.bosses = {};
+      const b = s.bosses[h.boss.id] || (s.bosses[h.boss.id] = {});
+      rec.fights++;
+      if (h.boss.win) {
+        if (!b.won) { b.won = 1; bossFirst = h.boss.id; shells += BOSS_BY[h.boss.id].shells; }
+        delete b.left;
+      } else {
+        rec.escapes++;
+        if (!b.won && !b.free) b.left = h.boss.left;
+      }
+    }
     addShells(s, shells);
-    return { gained, fresh, shells };
+    return { gained, fresh, shells, bossFirst };
   }
 
   // ---------- idle pen ----------
@@ -650,6 +859,7 @@
     if (!st.pond) return 0;
     let t = 0;
     for (const sp of SPECIES) {
+      if (sp.boss) continue;
       const c = s.caught[sp.id] || 0;
       if (c) t += sp.value * Math.sqrt(Math.min(c, 2000));
     }
@@ -688,7 +898,7 @@
   const SEASON_SHELLS = 5;
   function addShells(s, n) { if (n > 0) { s.shells += n; s.shellsEver += n; } }
   const BUYABLE_GEAR = GEAR.filter((g) => g.cost > 0).length;
-  const ALL_VARIANTS = SPECIES.reduce((t, sp) => t + (sp.junk ? 1 : 1 + MUTATIONS.length), 0);
+  const ALL_VARIANTS = SPECIES.reduce((t, sp) => t + (sp.junk || sp.boss ? 1 : 1 + MUTATIONS.length), 0);
   function achValue(s, k) {
     const r = s.rec;
     switch (k) {
@@ -712,6 +922,8 @@
       case 'master': { let n = 0; for (const id in s.caught) if (s.caught[id] >= MASTERY[MASTERY.length - 1]) n++; return n; }
       case 'time': return s.playTime;
       case 'days': return r.days;
+      case 'boss': return BOSSES.filter((b) => bossState(s, b.id).won).length;
+      case 'storm': return r.storm || 0;
       case 'gear': return Object.keys(s.gear.owned).filter((id) => GEAR_BY[id] && GEAR_BY[id].cost > 0).length;
       default: return 0;
     }
@@ -770,6 +982,7 @@
     DATA: D, NODE, SP, PXM, PRESTIGE_DEPTH, rng, newSave, migrate, lv, stats, valueMult, collectionBonus, mastery,
     zoneAt, nodeCost, nodeState, canBuy, buy, affordableCount, newRun, carryOver, lineLeft, stepRun, haul, settle, fishValue,
     pondRate, offline, prestigeGain, prestige, spriteSize, obsIn,
+    BOSS_BY, BAIT_BY, castCond, weatherAt, timeAt, baitOpen, setBait, gateBoss, bossState, bossOpen,
     GEAR_BY, gearFx, achValue, achGoal, achProgress, checkAch, markDay, gearState, buyGear, equip, addShells, newRec,
   };
   if (typeof module !== 'undefined') module.exports = E; else root.KL.Engine = E;

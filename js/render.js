@@ -160,7 +160,7 @@
       let target;
       if (g.mode === 'cast' && g.run) {
         const r = g.run;
-        target = r.phase === 'down' ? r.y - this.viewH * 0.28 : r.y - this.viewH * 0.62;
+        target = r.phase === 'down' ? r.y - this.viewH * 0.28 : r.phase === 'fight' ? r.y - this.viewH * 0.45 : r.y - this.viewH * 0.62;
         if (r.phase === 'down' && r.paid < r.st.line * r.st.fall) target = r.y - this.viewH * 0.4;
         target = Math.max(-this.viewH * this.sky, target);
       } else if (g.mode === 'haul' && g.run) target = -this.viewH * this.sky;
@@ -189,6 +189,7 @@
       const run = (g.mode === 'cast' || g.mode === 'haul') && g.run ? g.run : g.preview;
       if (run) this.drawObstacles(ctx, run, Y);
       if (run) this.drawFish(ctx, run, Y, g.sonar);
+      if (run) this.drawBosses(ctx, run, Y, g);
       this.drawBoat(ctx, Y, g);
       if (g.mode === 'throw' && g.throw) this.drawThrow(ctx, Y, g.throw);
       if (g.mode === 'cast' && g.run) { this.updateLine(g.run, dt); this.drawLineAndHook(ctx, g.run, Y); }
@@ -197,6 +198,7 @@
       this.drawFlyers(ctx, Y, dt, g);
       this.drawDark(ctx, Y, camY, midDepth, run, g);
       this.drawFront(ctx, Y, camY, midDepth);
+      this.drawWeather(ctx, Y, dt, run && run.cond);
 
       // device-pixel layer: floating text and the depth ruler
       ctx.setTransform(1, 0, 0, 1, sx, sy);
@@ -208,19 +210,33 @@
     drawSky(ctx, Y, g) {
       const top = Y(-60), hz = Y(0);
       if (hz <= 0) return;
-      const night = g.moon;
-      const bands = night ? ['#1b1f3d', '#232955', '#2d3566', '#3a4378'] : ['#f0c48a', '#f4d19c', '#f7ddb0', '#f9e8c6'];
+      const run = (g.mode === 'cast' || g.mode === 'haul' || g.mode === 'throw') && g.run ? g.run : g.preview;
+      const cond = run && run.cond;
+      const time = cond ? cond.time : 'pagi', wx = cond ? cond.weather : 'cerah';
+      const night = g.moon || time === 'malam';
+      const SKY = {
+        pagi: ['#f0c48a', '#f4d19c', '#f7ddb0', '#f9e8c6'],
+        siang: ['#8fc6d8', '#a6d3df', '#bfdfe3', '#d6eae4'],
+        senja: ['#6b4a7a', '#b0607a', '#e08a6a', '#f2b27a'],
+        malam: ['#1b1f3d', '#232955', '#2d3566', '#3a4378'],
+      };
+      let bands = SKY[night ? 'malam' : time];
+      // rain greys the sky, a storm darkens it and flashes
+      if (wx !== 'cerah') bands = bands.map((c) => mix(c, wx === 'badai' ? '#2a2c3a' : '#8a8f98', wx === 'badai' ? 0.6 : 0.45));
+      if (wx === 'badai' && this.flash > 0) bands = bands.map((c) => mix(c, '#f4f0ff', Math.min(1, this.flash * 3)));
       const h = hz - top;
       for (let i = 0; i < 4; i++) { ctx.fillStyle = bands[i]; ctx.fillRect(0, top + Math.floor(h * i / 4), this.artW, Math.ceil(h / 4) + 1); }
-      // sun or moon
-      const cx = Math.round(this.artW * 0.8), cy = hz - 46;
+      // sun or moon (the sun sits low at dusk, high at midday; no sun behind rain clouds)
+      const cx = Math.round(this.artW * 0.8), cy = hz - (time === 'senja' && !night ? 18 : time === 'siang' ? 62 : 46);
+      if (wx === 'cerah' || night) {
       ctx.fillStyle = night ? '#f4f0d8' : '#fff1c9';
       disc(ctx, cx, cy, 13);
       if (night) { ctx.fillStyle = '#dcd6b8'; ctx.fillRect(cx - 5, cy - 3, 3, 3); ctx.fillRect(cx + 3, cy + 4, 4, 2); }
       else { ctx.fillStyle = '#ffe2a1'; disc(ctx, cx, cy, 17, 0.35); }
-      // clouds
-      ctx.fillStyle = night ? '#3e4780' : '#fff6e4';
-      for (let i = 0; i < 4; i++) {
+      }
+      // clouds (more and heavier in bad weather)
+      ctx.fillStyle = wx === 'badai' ? '#3a3c4c' : wx === 'hujan' ? '#9da2ab' : night ? '#3e4780' : time === 'senja' ? '#f6c39a' : '#fff6e4';
+      for (let i = 0; i < (wx === 'cerah' ? 4 : 9); i++) {
         const w = 26 + (i * 13) % 20;
         const x = Math.round(((i * 137 + this.t * (3 + i)) % (this.artW + 80)) - 40);
         const y = hz - 70 + i * 13 - (i % 2) * 6;
@@ -246,7 +262,7 @@
         ctx.fillStyle = '#ffe9a8'; ctx.fillRect(lx + 1, ly - 17, 2, 1);
         if (night) { ctx.fillStyle = 'rgba(255,233,168,0.18)'; ctx.fillRect(lx + 4, ly - 18, 30, 3); }
       }
-      if (!night) {
+      if (!night && wx === 'cerah') {
         ctx.fillStyle = '#5b4a5e';
         for (let i = 0; i < 3; i++) {
           const bx = Math.round(((this.t * (6 + i) + i * 90) % (this.artW + 40)) - 20), byy = hz - 58 + i * 7 + Math.round(Math.sin(this.t * 2 + i) * 2);
@@ -420,8 +436,82 @@
       this.drawPier(ctx, s);
     },
 
+    // zone guardians: big, slow while waiting, flashing white just before a move in a fight
+    drawBosses(ctx, run, Y, g) {
+      for (const b of run.bosses) {
+        if (b.won) continue;
+        const yy = Y(b.y);
+        if (yy < -60 || yy > this.artH + 60) continue;
+        const sp = SPECIES[b.sp];
+        const fight = run.fight === b;
+        const blink = fight && b.tele && Math.floor(this.t * 16) % 2 === 0;
+        const img = this.variant(sp.sprite, blink ? 'flash' : sp.shadow ? 'shadow' : '');
+        const sc = b.scale;
+        const w = img.width * sc, h = img.height * sc;
+        // a fighting guardian thrashes; one at rest bobs
+        const shake = fight ? Math.round(Math.sin(this.t * 30) * (1 + b.c)) : 0;
+        const x = Math.round(b.x * PXM - w / 2) + this.ox + shake;
+        const y = yy - Math.round(h / 2) + Math.round(Math.sin(b.ph) * 2);
+        if (b.dir < 0) { ctx.save(); ctx.translate(x + w, y); ctx.scale(-1, 1); ctx.drawImage(img, 0, 0, w, h); ctx.restore(); }
+        else ctx.drawImage(img, x, y, w, h);
+        // a little pixel crown marks a guardian
+        const cx = x + Math.round(w / 2), cy = y - 6 + Math.round(Math.sin(this.t * 2) * 1);
+        ctx.fillStyle = '#14121c'; ctx.fillRect(cx - 6, cy - 5, 13, 7);
+        ctx.fillStyle = b.gate ? '#f5b82e' : '#b8a8ff';
+        ctx.fillRect(cx - 5, cy - 1, 11, 2); ctx.fillRect(cx - 5, cy - 4, 2, 3); ctx.fillRect(cx - 1, cy - 4, 3, 3); ctx.fillRect(cx + 4, cy - 4, 2, 3);
+        if (fight) {
+          // where you are pulling: a chevron on the far side, green while it holds the guardian
+          // drawn clear of the guardian's body, on the side you pull to
+          const left = run.tx < b.x;
+          const ax = b.x + (left ? -1 : 1) * Math.max(Math.abs(run.tx - b.x), b.hw + 3);
+          const px = Math.round(ax * PXM) + this.ox, py = yy - 2;
+          ctx.fillStyle = '#14121c'; ctx.fillRect(px - 5, py - 6, 11, 13);
+          ctx.fillStyle = b.c > 0.6 ? '#7fd36a' : b.c > 0.2 ? '#f5b82e' : '#ff6b3d';
+          for (let i = 0; i < 4; i++) {
+            const dx = left ? i : -i;
+            ctx.fillRect(px + dx - (left ? 2 : -1), py - 4 + i, 2, 1);
+            ctx.fillRect(px + dx - (left ? 2 : -1), py + 4 - i, 2, 1);
+          }
+          // the line pulled taut between the pull mark and the guardian's mouth
+          ctx.fillStyle = 'rgba(240,250,245,0.55)';
+          pxLine(ctx, px, py, Math.round(b.x * PXM) + this.ox + (b.dir > 0 ? Math.round(w / 2) - 2 : -Math.round(w / 2) + 2), yy);
+          if (Math.random() < 0.4) this.bubbles.push({ x: b.x + (Math.random() - 0.5) * 6, y: b.y, vx: -b.dir * 2, vy: -2, t: 0, life: 0.6 });
+        }
+      }
+    },
+
+    // rain streaks and lightning over everything; on screen in the air and the top of the sea
+    drawWeather(ctx, Y, dt, cond) {
+      const wx = cond ? cond.weather : 'cerah';
+      this.flash = Math.max(0, (this.flash || 0) - dt);
+      if (wx === 'cerah') return;
+      const storm = wx === 'badai';
+      if (storm && Math.random() < dt / 5) this.flash = 0.35;
+      const surf = Y(0);
+      const n = storm ? 70 : 40;
+      ctx.fillStyle = storm ? 'rgba(200,215,235,0.55)' : 'rgba(210,225,240,0.45)';
+      for (let i = 0; i < n; i++) {
+        const sx = (hash(i * 3.1) * (this.artW + 60) + this.t * (storm ? 90 : 40)) % (this.artW + 60) - 30;
+        const sy = (hash(i * 7.7) * (this.artH + 40) + this.t * (storm ? 260 : 180)) % (this.artH + 40) - 20;
+        if (sy > surf + 2) {
+          // drops that hit the water make a short ring at the surface only
+          if (surf > 0 && surf < this.artH && sy < surf + 6) ctx.fillRect(Math.round(sx), surf, 2, 1);
+          continue;
+        }
+        const len = storm ? 7 : 5;
+        for (let k = 0; k < len; k++) ctx.fillRect(Math.round(sx - k * (storm ? 0.5 : 0.25)), Math.round(sy + k), 1, 1);
+      }
+      if (storm && this.flash > 0.2) {
+        ctx.fillStyle = `rgba(240,240,255,${((this.flash - 0.2) * 1.6).toFixed(2)})`;
+        ctx.fillRect(0, 0, this.artW, this.artH);
+      }
+    },
+
     drawLineAndHook(ctx, run, Y) {
-      const hx = Math.round(run.x * PXM) + this.ox, hy = Y(run.y);
+      // in a fight the hook sits in the guardian's mouth
+      const f0 = run.fight;
+      const mx = f0 ? run.x + f0.dir * f0.hw * 0.95 : run.x;
+      const hx = Math.round(mx * PXM) + this.ox, hy = Y(run.y) + (f0 ? 4 : 0);
       const tip = this.rodTip || { x: this.worldW / 2 + 6, y: -5 };
       const P = (p) => [Math.round(p.x * PXM) + this.ox, Y(p.y)];
       ctx.fillStyle = 'rgba(240,250,245,0.8)';
@@ -454,6 +544,15 @@
         ctx.restore();
       }
       if (n > 10) this.hookExtra = n - 10; else this.hookExtra = 0;
+      if (run.trophy) {
+        const img = this.variant(SPECIES[run.trophy.sp].sprite, SPECIES[run.trophy.sp].shadow ? 'shadow' : '');
+        const sc = 1.6, w = img.width * sc, h = img.height * sc;
+        ctx.save();
+        ctx.translate(hx + Math.round(Math.sin(this.t * 3) * 2), hy + 2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.drawImage(img, -w, -h / 2, w, h);
+        ctx.restore();
+      }
       ctx.drawImage(this.variant('hook', ''), hx - 2, hy - 6);
       if (run.guard > 0 && run.phase === 'down') {
         ctx.strokeStyle = 'rgba(184,168,255,0.8)';
@@ -714,7 +813,11 @@
       const span = (z2 > z ? ZONES[z2].top : ZONES[z].top + 1000) - ZONES[z].top;
       const k = Math.min(1, (mid - ZONES[z].top) / span);
       let dark = ZONES[z].dark + (ZONES[z2].dark - ZONES[z].dark) * k;
-      if (g.moon && mid < 2) dark = 0;
+      const cond = run && run.cond;
+      // night and storms darken the upper sea; glowing fish then stand out
+      if (cond && cond.time === 'malam') dark = Math.max(dark, 0.42);
+      else if (cond && cond.weather === 'badai') dark = Math.max(dark, 0.22);
+      if (g.moon && mid < 2) dark = Math.min(dark, 0.2);
       if (dark < 0.02) return;
       const d = this.dctx;
       d.globalCompositeOperation = 'source-over';
@@ -748,6 +851,11 @@
           const yy = Y(f.y);
           if (yy < -30 || yy > this.artH + 30) continue;
           hole(Math.round(f.x * PXM) + this.ox, yy, f.mut >= 1 ? 22 : 16);
+        }
+        for (const b of run.bosses) {
+          if (b.won) continue;
+          const yy = Y(b.y);
+          if (yy > -40 && yy < this.artH + 40) hole(Math.round(b.x * PXM) + this.ox, yy, 30);
         }
       }
       ctx.drawImage(this.dark, 0, 0);
@@ -802,6 +910,15 @@
       const reach = run.phase === 'down' ? run.y + E.lineLeft(run) : run.maxY;
       const ly = Math.round((reach - camY) / mpp);
       if (ly > 0 && ly < H) { ctx.fillStyle = '#ff6b3d'; ctx.fillRect(x0, ly - dpr, w, 3 * dpr); }
+      // guardian arenas: gold for a closed gate, lilac for a rematch
+      for (const b of run.bosses) {
+        if (b.won) continue;
+        const by = Math.round((b.y - camY) / mpp);
+        if (by < 0 || by > H) continue;
+        ctx.fillStyle = '#14121c'; ctx.fillRect(x0, by - 4 * dpr, w, 8 * dpr);
+        ctx.fillStyle = b.gate ? '#f5b82e' : '#b8a8ff';
+        for (let i = 0; i < w; i += 6 * dpr) ctx.fillRect(x0 + i, by - 3 * dpr, 3 * dpr, 6 * dpr);
+      }
       if (g.sonar) {
         for (const f of run.fish) {
           if (f.st !== 0 || (f.mut < 1 && !SPECIES[f.sp].rare)) continue;
@@ -994,6 +1111,7 @@
       const L = lum(src[i], src[i + 1], src[i + 2]);
       let c;
       if (v === 'sil') c = [205, 185, 149];
+      else if (v === 'flash') c = L < 28 ? hex('#14121c') : [255, 246, 228];
       else if (v === 'gold') c = L < 28 ? hex('#3a2400') : ramp(GOLD, Math.min(255, L * 1.15 + 20));
       else if (v === 'shadow') {
         const inner = opaque(px - 1, py) && opaque(px + 1, py) && opaque(px, py - 1) && opaque(px, py + 1);

@@ -58,7 +58,10 @@
     const nonce = str.slice(4, 12), check = str.slice(12, 20);
     if (!/^[0-9a-f]{8}$/.test(nonce)) return null;
     try {
-      const text = new TextDecoder('utf-8', { fatal: true }).decode(xor(fromB64(str.slice(20)), nonce));
+      const body = str.slice(20), raw = fromB64(body);
+      // base64 ignores some bits of the last character; only the canonical spelling is valid
+      if (toB64(raw) !== body) return null;
+      const text = new TextDecoder('utf-8', { fatal: true }).decode(xor(raw, nonce));
       if (sum(text, nonce) !== check) return null;
       return JSON.parse(text);
     } catch (e) { return null; }

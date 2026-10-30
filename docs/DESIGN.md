@@ -210,3 +210,168 @@ cleaner lines.
   end), so the Auto Angler and the balance sim play the same trade. It loses about 5-15% of its
   line to swerves and currents; a human steering by hand loses more, which the TIER refit keeps
   out of the pacing targets.
+
+## 14. Zone guardians (boss fish)
+
+Every zone now has a guardian sitting a few metres above it. Until you catch it, your line
+cannot go past its arena: reaching that depth hooks it and starts a fight. Catching it opens
+the way for good, pays shells once, and the guardian goes into the Fishdex like any fish.
+
+### Research and what we took from it
+
+- **Stardew Valley legendary fish**: one fish per location, much harder than the rest, caught
+  once, and a trophy in the collection. Taken: one named fish per zone, a first-catch reward,
+  a Fishdex entry. Not taken: Stardew's legendaries are optional; here they are gates, because
+  a gate turns "buy more line" into "get strong enough to win", which is a better goal.
+- **Dredge**: the sea gets more dangerous in layers, and each region has one big set piece.
+  Taken: each zone has its own guardian with its own behaviour, and they get meaner with depth.
+- **Ridiculous Fishing / Cat Goes Fishing**: the fish fight back with simple, readable patterns
+  instead of reflex tests. Taken: every move is announced by a white flash 0.45 s before it
+  happens, so a fight is about reading the guardian, not reacting faster than it.
+- **Incremental games (Cookie Clicker, Idle Fishing tycoons)**: a hard wall that only stats
+  can break feels like a paywall. So the wall here is beaten by skill *and* by stats, and every
+  attempt makes progress (see "No dead attempts").
+
+### The fight
+
+The hook is in the guardian's mouth. It swims left or right and takes line from the spool as it
+runs. You aim the hook (finger, joystick or keys) on the **far side** of where it is heading:
+
+- **Counter** `c` goes from 0 (aim follows the guardian) to 1 (aim 4 m or more on the other
+  side). It slows the guardian down (`speed * (1 - 0.75c)`), drains its stamina faster
+  (`reel * (0.2 + 0.8c)` per second) and reels line back in.
+- **Line** is the tug-of-war meter. The guardian takes `pull * arenaDepth` metres per second
+  while it runs free; holding it gives some back:
+  `paid += pull * depth * ((1 - 0.75c) - 0.6c) * dt`. Spool empty: it gets away.
+- **Slack.** The strike pulls the line tight, so the slack you fight with is `line - depth`.
+  The reel's drag always gives at least 15% of the depth, so arriving on your last metres of
+  line is hard but never hopeless; every metre of line past that makes the fight easier. This
+  is why a line upgrade still matters while you are stuck at a gate.
+- **Moves.** Every `turn` seconds it flashes, then does one of:
+  run (turns around), dash (turns and bursts at 1.8x for 0.8 s), dive (turns and pulls 6 m down,
+  double pull) or feint (flashes but keeps going, punishing players who switch on the flash
+  alone).
+- **Reel** (the reel speed stat) is the damage stat, so the Reel branch is the "fight" branch.
+  Smooth Steering has no effect on fights; line and reel do.
+
+| Guardian | Arena | Stamina | Pull | Turns every | Moves | Shells |
+|---|---|---|---|---|---|---|
+| King Catfish (Lele Raja) | 26 m | 70 | 12% | 1.6-2.6 s | run | 10 |
+| Old Reef Grouper (Kerapu Karang Tua) | 86 m | 300 | 10% | 1.3-2.2 s | run, dash | 15 |
+| Lightning Tuna (Tuna Kilat) | 214 m | 600 | 8% | 1.0-1.8 s | run, dash x2 | 25 |
+| Shadow Manta (Manta Bayangan) | 472 m | 1200 | 8% | 1.0-1.7 s | run, dash, dive | 40 |
+| Elder Angler (Pemancing Purba) | 1040 m | 1900 | 7% | 0.8-1.5 s | run, dash, dive, feint | 60 |
+
+Stamina is sized to the reel speed a player has when they first reach the arena in the sim
+(9, 32, 50, 94, 95 m/s), so a good fight lasts 9 to 25 seconds: long enough to feel like an
+event, short enough to fit a cast. Win rates at arrival stats with 15% slack (40 fights each,
+`scripts/balance.js` bot, skill = reaction time `0.55 - 0.4 * skill` s):
+
+| Guardian | skill 0.3 | skill 0.6 | skill 0.9 |
+|---|---|---|---|
+| King Catfish | 100% | 100% | 100% |
+| Old Reef Grouper | 90% | 100% | 100% |
+| Lightning Tuna | 3% | 85% | 100% |
+| Shadow Manta | 0% | 70% | 100% |
+| Elder Angler | 15% | 57% | 100% |
+
+The first guardian is a tutorial: it only turns, slowly, and teaches the counter. The tuna is
+the first real check. Slow players get through on persistence and more line.
+
+### No dead attempts
+
+- A gate guardian that gets away keeps half of the stamina it lost that fight, for good (shown
+  as "Stamina 63%" on the forecast chip). Three or four honest tries always win.
+- The cast is not wasted: after the fight (won or lost) the hook turns up from the arena and
+  catches fish on the way up as usual. A caught guardian rides up on the hook without taking a
+  crate slot, is worth one to four hauls of its zone, and the cat never copies it.
+- Arenas are open water: no rocks, urchins or mines within 9 m, so the fight is only the fight.
+
+### Gates, old saves and rematches
+
+- `s.bosses[id] = { won, left, free }`. The first closed guardian is the floor of every cast;
+  deeper water is not reachable, though its fish are still drawn (you can see what is waiting).
+- Saves from before guardians keep every zone they reached: those guardians are marked `free`
+  and act like beaten ones.
+- A beaten guardian stays in its arena as a **rematch**: it fights only if the hook touches
+  it on the way down, at full stamina, for its coins (no shells). Rocks around it are cleared
+  too, so you can choose to dodge it.
+- New seasons keep the gates you opened; the guardians are a one-time key, the season is a
+  reset of the economy.
+
+### Reading it on screen
+
+- A pixel crown over the guardian: gold for a closed gate, lilac for a rematch. The depth gauge
+  marks arenas with the same colours.
+- The dock forecast shows a dark chip with the next guardian and its depth; tapping it explains
+  the gate, its stamina left, the first-catch reward and how slack works.
+- In a fight: a stamina bar with the guardian's name at the top (its frame turns orange while it
+  warns of a move), a chevron at your aim (green when it holds, orange half, red not at all), the
+  taut line from your aim to its mouth, and the line pill counting what is left.
+- The very first fight shows a hint: "pull the other way; when it flashes white it turns".
+
+## 15. Cast conditions: time of day, weather, bait
+
+Every cast now has a time of day and a weather, and the player picks a bait. They are
+side-grades: none of them is simply better, each one bends what bites.
+
+### Why
+
+Incrementals live on "one more cast", and identical casts wear that out. Dredge's day/night
+changes which fish (and which dangers) are out; Stardew's weather and time windows make a
+rare fish an appointment; real fishing is about choosing bait for the target. A forecast that
+is never wrong lets the player *plan* ("a storm in 2 casts, keep the lucky run for it"), which
+is the kind of small decision an idle game needs between upgrades.
+
+### Time of day (turns every 3 casts)
+
+| Time | Effect |
+|---|---|
+| Morning (Pagi) | +30% fish above 90 m |
+| Midday (Siang) | reel up 10% faster |
+| Dusk (Senja) | rare species 60% more often |
+| Night (Malam) | glowing species 2.2x, mutations +40%; the upper sea is dark |
+
+The ghost ship's full moon always falls on a night.
+
+### Weather (holds for 4 casts)
+
+| Weather | Odds | Effect |
+|---|---|---|
+| Clear (Cerah) | 60% | none |
+| Rain (Hujan) | 28% | +20% fish, but they swim 25% faster |
+| Storm (Badai) | 12% | +50% coins on the haul, currents 1.8x stronger and more common (they eat line) |
+
+The first 8 casts are always clear, so a new player learns the plain sea first.
+Weather comes from a hash of `floor(cast / 4)`, time from `floor(cast / 3) % 4`, so the dock's
+chips show exactly what the next cast gets, and tapping the weather chip tells when it changes
+("Storm in 3 casts").
+
+### Bait (free, unlocks with zones)
+
+| Bait | Opens at | Effect |
+|---|---|---|
+| Worm (Cacing) | start | plain |
+| Pellets (Pelet) | Reef | +35% fish, rare ones x0.6: fills the crate |
+| Shrimp (Udang) | Open Blue | rare species x1.8, fish x0.75: hunting the Fishdex |
+| Glow Lure (Umpan Lampu) | Twilight | glowing x2.5, mutations +25%, shallow fish -40% |
+
+Bait stacks with time and weather (all effects multiply), so a Glow Lure on a full-moon night is
+the mutation hunt, Pellets in the rain fill any crate, and Shrimp at dusk is the rare-fish
+appointment. The bait chip only appears once a second bait is open.
+
+### Balance
+
+The balance bot plays with worm bait and takes the weather as it comes, so the pacing targets
+already include the average effect (storms pay +50% one cast in eight, rain thickens the shallows).
+Bait choices are on top: a player who picks well is a little faster than the targets, never
+slower.
+
+### On screen
+
+- Sky: warm morning, pale blue midday, orange-purple dusk, dark night with a moon; rain greys it
+  and hides the sun, a storm darkens it further, with lightning flashes.
+- Rain and storm streaks fall over the sky and ring the surface.
+- Night and storms darken the upper sea, so the glow of lantern fish and mutations shows.
+- Haul screen: a storm cast lists "Storm +50%" with the other bonuses.
+- Achievements: First Guardian, Sea Conqueror (all five), Storm Sailor (10 storm casts).

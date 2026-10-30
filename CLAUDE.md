@@ -17,6 +17,9 @@ ship to the Play Store as a web payload, so mobile first, portrait and landscape
   `window.__kail` (`give`, `setNodes`, `cast(x)`). Save files (`.sav`) and the browser copy go through
   `KL.SaveCodec` (`js/savecodec.js`: scrambled + keyed checksum, edits are rejected); the file holds
   `{ game: 'gnome-line-sinker', v, at, save }`.
+- Zone guardians (`BOSSES` in data.js, fight in `stepFight`) gate each zone; the save keeps
+  `bosses[id] = { won, left, free }`. Cast conditions (`castCond`) come from the cast number only,
+  so the dock forecast is exact; bait is `save.bait`. Fight harness numbers live in DESIGN.md 14.
 - The docked preview run is the next cast (`g.preview` becomes `g.run`), so idle fish = cast fish.
 - Credit both asset packs (Moranovo 80+ Fishing Icons, PixelGnome Fishing Pack sample) in the
   in-game credits and README.
