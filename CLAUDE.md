@@ -23,4 +23,5 @@ ship to the Play Store as a web payload, so mobile first, portrait and landscape
 - Sprites: edit `tools/build_atlas.py` and run `python3 tools/build_atlas.py Assets` (folder layout in
   the build script header). Static drawings (rocks, nets, light holes) go through `R.baked()` so
   they are drawn once, not every frame. Fonts in `style.css` are subset to the characters the UI uses:
-  re-subset if you add copy with new non-ASCII characters.
+  re-subset if you add copy with new non-ASCII characters, then run `python3 tools/fix_digits.py style.css`
+  (redraws 2, 5 and 7, which read as S shapes in Pixelify Sans).
