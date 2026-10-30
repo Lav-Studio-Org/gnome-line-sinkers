@@ -161,11 +161,12 @@
       if (!G || !G.enabled) { box.classList.add('hidden'); return; }
       const d = G.data;
       const v = (n) => (d ? KL.fmt(n || 0) : '...');
-      box.innerHTML = `<b>${ic('globe')}${t('g_head')}</b>
+      box.innerHTML = `<b>${ic('globe')}${t('g_head')}</b><p>${t('g_sub')}</p>
         <div class="g-big"><small>${t('g_fish')}</small><span>${v(d && d.fish)}</span></div>
         <div><small>${t('g_players')}</small><span>${v(d && d.players)}</span></div>
         <div><small>${t('g_casts')}</small><span>${v(d && d.casts)}</span></div>
-        <div><small>${t('g_deep')}</small><span>${d ? KL.fmt(d.deep || 0) + ' m' : '...'}</span></div>`;
+        <div><small>${t('g_deep')}</small><span>${d ? KL.fmt(d.deep || 0) + ' m' : '...'}</span></div>
+        <p>${t('g_note')}</p>`;
       box.classList.remove('hidden');
       if (G.busyStats) return;
       G.busyStats = true;
