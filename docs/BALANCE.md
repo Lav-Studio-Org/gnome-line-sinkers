@@ -11,15 +11,16 @@ that tier reaches its zone on time (averaged over 3 seeds):
 
 | Milestone | Target | Simulated |
 |---|---|---|
-| First skill | < 1 min | 0:33 |
+| First skill | < 1 min | 0:38 |
 | Reef 30 m | 0.7 min | 0.7 min |
-| Open Blue 90 m | (follows) | ~9 min |
-| Twilight 220 m | 18 min | 16.5 min |
-| Trench 480 m (new season unlocked) | 40 min | 42.6 min |
-| Weird Deep 1050 m | 85 min | 81 min |
+| Open Blue 90 m | (follows) | ~8 min |
+| Twilight 220 m | 18 min | 15.3 min |
+| Trench 480 m (new season unlocked) | 40 min | 37.6 min |
+| Weird Deep 1050 m | 85 min | 83 min |
 
 Refitted on 2026-10-30 after obstacles (rocks, urchins, mines, nets, currents, vents) and the
-2D hook were added: `TIER = [30, 650, 4e5, 1.2e8, 6e9, 3e11]`. Ads were removed at the same
+2D hook were added, and again when 46 species from the 80+ Fishing Icons pack joined
+(79 in total): `TIER = [33, 800, 5.3e5, 2.1e8, 1.1e10, 5.5e11]`. Ads were removed at the same
 time; the sim never used them, so the pacing above is the whole game.
 
 Every cast pays: the first three casts have easy fish under the boat, and a fish you bump
@@ -37,11 +38,10 @@ every 5 minutes after hour 2).
 
 | Season | Length | Pearls earned |
 |---|---|---|
-| 1 | 35 min | 5 |
-| 2-6 | 11-22 min each | 4 each |
-| 7-8 | ~38 min | 4-5 |
-| 9-10 | ~60 min | 2-3 |
-| 11+ | ~60-70 min | +1 per season |
+| 1 | 38 min | 5 |
+| 2-7 | 13-20 min each | 4-6 each |
+| 8 | ~62 min | 3 |
+| 9+ | ~60 min | +1-2 per season |
 
 After about 2.5-3 hours of optimal play the climb becomes a slow long tail: depth is limited by
 dodging (fish get denser deeper) and the Endless Line skill costs x3 per level. Real players

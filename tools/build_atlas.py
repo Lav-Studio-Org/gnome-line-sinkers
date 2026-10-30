@@ -27,6 +27,28 @@ for i, n in enumerate(free_names):
         c = c.crop(c.getbbox())
     sprites[n] = c
 
+# 80+ Fishing Icons (Moranovo): a 10 x 9 grid of 16 px icons. Most fish are drawn diagonally
+# (head up-left), so they are RotSprite-rotated to face right; side-on ones facing left are flipped.
+MO = Image.open(os.path.join(SRC, '80+Fishing Icons Asset Pack', '1.0', 'Fishing Icons.png')).convert('RGBA')
+MO_ICONS = {
+  # name: (index in the grid, 'rot' | 'flip' | 'keep')
+  'mo_stickleback': (10, 'rot'), 'mo_sunfish': (11, 'rot'), 'mo_prawn': (12, 'keep'), 'mo_minnow': (13, 'rot'),
+  'mo_snapper': (14, 'rot'), 'mo_snail': (19, 'keep'), 'mo_tilapia': (8, 'rot'),
+  'mo_croaker': (20, 'rot'), 'mo_tuna': (21, 'rot'), 'mo_saury': (22, 'rot'), 'mo_cod': (23, 'rot'), 'mo_salmon': (24, 'rot'),
+  'mo_grouper': (25, 'rot'), 'mo_mackerel': (26, 'rot'), 'mo_turbot': (27, 'flip'), 'mo_pomfret': (28, 'flip'), 'mo_gpomfret': (29, 'flip'),
+  'mo_tetra': (30, 'rot'), 'mo_guppy': (31, 'rot'), 'mo_ytang': (35, 'flip'), 'mo_flying': (36, 'rot'), 'mo_hairtail': (37, 'flip'),
+  'mo_seahorse': (39, 'keep'), 'mo_cucumber': (41, 'keep'), 'mo_bcucumber': (42, 'keep'), 'mo_octopus': (43, 'keep'), 'mo_batfish': (44, 'flip'),
+  'mo_stingray': (47, 'keep'), 'mo_ray': (48, 'keep'), 'mo_manta': (49, 'keep'), 'mo_abalone': (57, 'keep'), 'mo_turtle': (58, 'keep'),
+  'mo_coral': (59, 'keep'), 'mo_lobster': (62, 'keep'), 'mo_hermit': (63, 'keep'), 'mo_vstar': (64, 'keep'), 'mo_rstar': (65, 'keep'),
+  'mo_blob': (70, 'flip'), 'mo_angler': (71, 'flip'), 'mo_eeel': (72, 'keep'), 'mo_snake': (73, 'keep'), 'mo_oranda': (75, 'keep'),
+  'mo_bottle': (77, 'keep'),
+}
+for n, (i, mode) in MO_ICONS.items():
+    c = MO.crop(((i % 10) * 16, (i // 10) * 16, (i % 10) * 16 + 16, (i // 10) * 16 + 16))
+    if mode == 'rot': c = rotsprite(c, -135)
+    elif mode == 'flip': c = c.transpose(Image.FLIP_LEFT_RIGHT)
+    sprites[n] = c.crop(c.getbbox())
+
 # Hand-made sprites (facing right). '.' = transparent.
 HAND = {
  'jellyfish': ({'k':'#2b1b3d','p':'#e88ad6','P':'#ffc2f0','d':'#b45aa8','t':'#c97fe0','e':'#1a1424'}, [

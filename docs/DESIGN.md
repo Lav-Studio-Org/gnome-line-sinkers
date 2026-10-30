@@ -25,7 +25,7 @@ way back, and grow a skill tree until the sea stops making sense.
 - **Haul (3 s):** fish fly into the crate, a list shows what you got, collect.
 - **Skill tree (minutes):** 41 coin skills in six branches + 6 pearl skills. Nodes next to what
   you own are shown as "?", so there is always something just out of sight.
-- **Collection (days):** 33 species x 5 variants. Every new variant is +1% value forever;
+- **Collection (days):** 79 species x 5 variants. Every new variant is +1% value forever;
   catching 10 / 50 / 250 / 1000 of a kind adds +25% each for that kind.
 - **Fish pen (idle):** your collection earns coins per second, also while away (3 h, up to 13 h).
 - **Season (prestige, hours):** after reaching the Trench (480 m), reset coin skills for pearls.

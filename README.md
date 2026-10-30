@@ -31,7 +31,7 @@ The start menu has Continue / New game, **Save to file** (downloads a `.json` sa
 
 - Obstacles: rocks to steer around, sea urchins and mines that end a dive (a mine on the way
   up knocks a fish off the hook), ghost nets that slow you, currents and bubble vents that push.
-- 33 species in 6 depth zones (Estuary, Reef, Open Blue, Twilight, Trench, Weird Deep), 4
+- 79 species in 6 depth zones (Estuary, Reef, Open Blue, Twilight, Trench, Weird Deep), 4
   mutations (Big, Golden, Prismatic, Titan), a Fishdex with mastery stars.
 - Skill tree with six branches, mystery "?" nodes, pearl skills after the first new season.
 - Fish pen idle income and capped offline earnings.
