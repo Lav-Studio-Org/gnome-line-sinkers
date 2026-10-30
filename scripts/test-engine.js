@@ -260,6 +260,18 @@ test('the sea near the boat carries over: only caught fish are replaced', () => 
   assert.strictEqual(next.fish.filter((f) => f.y < left.end).length, near.length, 'same number of fish near the boat');
 });
 
+test('line is a length: side moves pay it out and the hook turns when it is gone', () => {
+  const s = E.newSave(); s.casts = 10; s.nodes.line1 = 5; // 80 m of line
+  const straight = E.newRun(s, { seed: 4, width: 100 }), zig = E.newRun(s, { seed: 4, width: 100 });
+  straight.fish = []; zig.fish = []; straight.obs = []; zig.obs = [];
+  let t = 0;
+  while (straight.phase === 'down') E.stepRun(straight, 1 / 30, 50);
+  while (zig.phase === 'down') { t += 1 / 30; E.stepRun(zig, 1 / 30, Math.sin(t * 3) > 0 ? 90 : 10); }
+  assert(Math.abs(straight.paid - straight.st.line) < 0.01 && Math.abs(zig.paid - zig.st.line) < 0.01, 'all line paid out');
+  assert(straight.maxY > straight.st.line - 1, 'straight drop reaches the full length');
+  assert(zig.maxY < straight.maxY * 0.8, 'zigzag should end shallower, got ' + zig.maxY.toFixed(1));
+});
+
 test('save codec round-trips and rejects edited or plain saves', () => {
   const C = require('../js/savecodec.js');
   const s = E.newSave(); s.coins = 12345.5; s.settings.lang = 'id'; s.name = 'Kail \u00e9\u4e2d';

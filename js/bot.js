@@ -57,7 +57,9 @@
         const t = Math.max(0, dy / st.sink);
         if (Math.abs(o.x - lx) < hw) danger += w / (t + 0.25);
       }
-      const score = danger * 10 + Math.abs(lx - run.x) * 0.04;
+      // side moves spend line, and more so as it runs out: a good player only swerves when it pays
+      const left = E.lineLeft(run) / st.line;
+      const score = danger * 10 + Math.abs(lx - run.x) * st.side * (0.04 + 0.5 * (1 - left) * (1 - left));
       if (score < bestScore) { bestScore = score; best = lx; }
     }
     return best;

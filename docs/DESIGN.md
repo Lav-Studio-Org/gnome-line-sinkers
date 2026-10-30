@@ -83,11 +83,11 @@ one every 7-15 m, denser deeper. The mix shifts by zone:
 
 | Obstacle | From | Going down | Going up |
 |---|---|---|---|
-| Rock | Estuary | solid, you slide around it | solid |
+| Rock | Estuary | solid, you slide around it (the detour costs line) | solid |
 | Sea urchin (on a rock) | Reef | turns the line up, no catch | harmless |
 | Mine | 110 m | boom: turns the line up and scares fish away | knocks your last fish off |
 | Ghost net | 18 m | everything at 35% speed inside | same |
-| Current | Estuary | pushes sideways | same |
+| Current | Estuary | pushes sideways, and that drift pays out line | pushes sideways |
 | Bubble vent | Twilight | pushes up (slows your dive) | lifts you faster |
 
 Hook Guard absorbs urchins and mines too. Mines, urchins and vents glow faintly so they are
@@ -182,3 +182,28 @@ Portrait rules (`/* portrait */` block at the end of `style.css`):
   under the tree; the start menu is a bottom card under the live scene.
 - **Tab strip.** The dark side rail of the Fishdex, Trophies and Shop becomes a scrolling tab
   strip on top; cards are one column on phones and two or more on tablets.
+
+## 13. Line is a length, not a depth
+
+The line upgrade used to be a depth limit. Now it is the length on the spool: every metre the
+hook travels on the way down pays out line, sideways included. When the spool is empty the hook
+turns, wherever it is. Reeling up costs nothing.
+
+Why: steering on the way down was free, so the best play was to swerve at everything. Now each
+swerve is a small trade (dodge this fish, or keep the depth), which is the decision a fishing
+game should be about. It also turns the existing obstacles into level design without adding new
+ones: a current's drift and a detour around a rock now cost line, so a straight gap through a
+field of rocks is worth looking for, and the deeper zones (more mines, more currents) ask for
+cleaner lines.
+
+- **Readable cost.** A rope pill next to the catch counter shows the line left while going down
+  and turns red at 20%. The orange marker on the depth gauge moves up as you spend line: it is
+  the deepest point still in reach going straight down.
+- **Fair numbers.** Sideways metres cost 1 metre of line each; Smooth Steering (and the Diver
+  outfit, Longtail boat) cut that by 10% per 20% steering, to half at most. Going up inside the
+  down phase (pulling up, a vent's lift) does not refund line.
+- **Free Fall** still drops straight down, so its share of the line is never wasted.
+- **Bot.** It now weighs side moves by how much line is left (cheap early, expensive near the
+  end), so the Auto Angler and the balance sim play the same trade. It loses about 2-3% of its
+  line to swerves and currents; a human steering by hand loses more, which the TIER refit keeps
+  out of the pacing targets.

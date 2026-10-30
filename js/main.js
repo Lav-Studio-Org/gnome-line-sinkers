@@ -405,6 +405,7 @@
       g.manualT -= dt;
       if (s.auto && g.stats.auto && g.manualT <= 0) { tgt = Bot.steer(run, g.stats.autoSkill, dt); g.target = tgt; }
       E.stepRun(run, dt, tgt);
+      UI.lineLeft(run.phase === 'down' ? E.lineLeft(run) : -1, E.lineLeft(run) / run.st.line);
       for (const ev of run.events.slice()) g.onEvent(ev);
     } else if (g.preview) {
       for (const f of g.preview.fish) {

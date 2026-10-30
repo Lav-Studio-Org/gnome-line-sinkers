@@ -112,6 +112,17 @@
       $('penRate').classList.toggle('hidden', mode === 'cast');
     },
     catchCount(n, cap) { $('catchCount').textContent = `${n}/${cap}`; },
+    // line still on the spool while going down; red when a fifth or less is left
+    // (hidden once the hook turns: then it is reeling in)
+    lineLeft(m, frac) {
+      const v = m < 0 ? -1 : Math.ceil(m);
+      if (v === this.shownLine) return;
+      this.shownLine = v;
+      $('linePill').classList.toggle('hidden', v < 0);
+      if (v < 0) return;
+      $('lineLeft').textContent = `${KL.fmt(v)} m`;
+      $('linePill').classList.toggle('low', frac <= 0.2);
+    },
     hint(text) {
       const el = $('hint');
       if (!text) { el.classList.add('hidden'); return; }

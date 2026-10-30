@@ -163,7 +163,7 @@
     // CONTROL (lower right): speed, guard, autopilot
     N('reel1', 1, 1, ['root'], 'reel', 'Gulungan Cepat', 'Quick Reel', 'Tarik ke atas 20% lebih cepat.', 'Reel up 20% faster.', 5, 0.7, 1.8, 'reel', 0.2, { t: 0 }),
     N('guard', 1, 2, ['reel1'], 'shield', 'Pelindung Kail', 'Hook Guard', 'Tembus 1 ikan saat turun.', 'Pass through 1 fish on the way down.', 5, 6, 2.5, 'guard', 1, { t: 0 }),
-    N('steer', 2, 2, ['reel1', 'guard'], 'steer', 'Kemudi Halus', 'Smooth Steering', 'Kail bergeser 20% lebih gesit.', 'Hook moves sideways 20% faster.', 4, 0.8, 2, 'steer', 0.2, { t: 1 }),
+    N('steer', 2, 2, ['reel1', 'guard'], 'steer', 'Kemudi Halus', 'Smooth Steering', 'Kail bergeser 20% lebih gesit dan geser ke samping memakan 10% lebih sedikit tali.', 'Hook moves sideways 20% faster, and side moves use 10% less line.', 4, 0.8, 2, 'steer', 0.2, { t: 1 }),
     N('auto', 1, 3, ['guard'], 'robot', 'Nelayan Otomatis', 'Auto Angler', 'Memancing sendiri. Level naik = makin jago.', 'Fishes on its own. More levels = more skill.', 3, 8, 5, 'auto', 1, { t: 1 }),
     N('reel2', 2, 3, ['steer', 'auto'], 'reel', 'Motor Tempel', 'Outboard Motor', 'Tarik ke atas 40% lebih cepat lagi.', 'Reel up another 40% faster.', 5, 0.3, 2.2, 'reel', 0.4, { t: 3 }),
     N('slow', 3, 2, ['steer'], 'timer', 'Fokus', 'Focus', 'Waktu melambat sesaat sebelum menabrak ikan.', 'Time slows just before you hit a fish.', 3, 3, 2.6, 'slow', 1, { t: 2 }),
@@ -179,7 +179,7 @@
 
   // Cost of a node = TIER[t] * c * g^level. TIER is roughly "15 casts of income" at the start of
   // each zone; scripts/balance.js --tune fits it to the pacing targets in docs/BALANCE.md.
-  const TIER = [43, 620, 630000, 140000000, 7000000000, 350000000000];
+  const TIER = [43, 510, 620000, 250000000, 13000000000, 650000000000];
   NODES.forEach((n) => { if (n.t != null) n.k = n.c; });
   function applyTier(T) {
     T.forEach((v, i) => { TIER[i] = v; });

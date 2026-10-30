@@ -161,7 +161,7 @@
       if (g.mode === 'cast' && g.run) {
         const r = g.run;
         target = r.phase === 'down' ? r.y - this.viewH * 0.28 : r.y - this.viewH * 0.62;
-        if (r.phase === 'down' && r.y < r.st.line * r.st.fall) target = r.y - this.viewH * 0.4;
+        if (r.phase === 'down' && r.paid < r.st.line * r.st.fall) target = r.y - this.viewH * 0.4;
         target = Math.max(-this.viewH * this.sky, target);
       } else if (g.mode === 'haul' && g.run) target = -this.viewH * this.sky;
       else target = -this.viewH * this.sky;
@@ -798,8 +798,9 @@
         ctx.fillRect(x0 + w - (major ? 14 : 7) * dpr, y, (major ? 14 : 7) * dpr, Math.max(1, dpr));
         if (major) ctx.fillText(m, x0 + 4 * dpr, y);
       }
-      // end of line marker
-      const ly = Math.round((run.st.line - camY) / mpp);
+      // end of line marker: the deepest point still in reach going straight down
+      const reach = run.phase === 'down' ? run.y + E.lineLeft(run) : run.maxY;
+      const ly = Math.round((reach - camY) / mpp);
       if (ly > 0 && ly < H) { ctx.fillStyle = '#ff6b3d'; ctx.fillRect(x0, ly - dpr, w, 3 * dpr); }
       if (g.sonar) {
         for (const f of run.fish) {

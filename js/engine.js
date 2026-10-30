@@ -98,6 +98,8 @@
       reel: Math.min(95, (7 + line * 0.07) * (1 + sumFx(s, 'reel'))),
       steer: 32 * (1 + sumFx(s, 'steer')),
       fall: Math.min(0.7, sumFx(s, 'fall')),
+      // line used per metre of sideways travel; Smooth Steering makes side moves cheaper
+      side: Math.max(0.5, 1 - 0.5 * sumFx(s, 'steer')),
       guard: sumFx(s, 'guard'),
       song: sumFx(s, 'song'),
       slow: sumFx(s, 'slow'),
@@ -344,7 +346,7 @@
     const x0 = o.x != null ? Math.max(1, Math.min(width - 1, o.x)) : width * 0.5;
     return {
       st, r, seed, width, moon, fish, end, keep, obs: makeObstacles(seed, width, end, s.casts < 3), events: [], t: 0,
-      phase: 'down', x: x0, y: 0, vx: 0, vy: 0, maxY: 0, guard: st.guard,
+      phase: 'down', x: x0, y: 0, vx: 0, vy: 0, maxY: 0, paid: 0, guard: st.guard,
       caught: [], lost: 0, cnt: { boom: 0, sting: 0, guard: 0 }, slowLeft: st.slow * 0.7, slowT: 0, timeScale: 1, zone: 0, inNet: null, inCur: null,
     };
   }
@@ -472,10 +474,19 @@
     return false;
   }
 
+  // The line is a length, not a depth: every metre the hook travels on the way down pays out
+  // line, sideways too (currents and detours around rocks included). When it is all out the
+  // hook turns, wherever it is. Sideways metres cost st.side each.
+  function payOut(run, x0, y0) {
+    const dx = (run.x - x0) * run.st.side, dy = Math.max(0, run.y - y0);
+    run.paid += Math.hypot(dx, dy);
+  }
+  const lineLeft = (run) => Math.max(0, run.st.line - run.paid);
+
   function stepDown(run, dt) {
     const st = run.st;
-    const freeTo = st.line * st.fall;
-    const fast = run.y < freeTo;
+    const fast = run.paid < st.line * st.fall;
+    const x0 = run.x, y0 = run.y;
     chaseX(run, dt);
     let want = st.sink;
     if (fast) want = st.sink * 4;
@@ -485,7 +496,8 @@
     run.y += (run.vy * env.slow - env.lift) * dt;
     if (run.y < 2) { run.y = 2; if (run.vy < 0) run.vy = 0; }
     solid(run);
-    if (run.y >= st.line) { run.y = st.line; turn(run, 'bottom'); return; }
+    payOut(run, x0, y0);
+    if (run.paid >= st.line) { run.paid = st.line; turn(run, 'bottom'); return; }
     if (fast) return;
     if (hazards(run)) return;
     const look = Math.max(0, run.vy);
@@ -755,7 +767,7 @@
 
   const E = {
     DATA: D, NODE, SP, PXM, PRESTIGE_DEPTH, rng, newSave, migrate, lv, stats, valueMult, collectionBonus, mastery,
-    zoneAt, nodeCost, nodeState, canBuy, buy, affordableCount, newRun, carryOver, stepRun, haul, settle, fishValue,
+    zoneAt, nodeCost, nodeState, canBuy, buy, affordableCount, newRun, carryOver, lineLeft, stepRun, haul, settle, fishValue,
     pondRate, offline, prestigeGain, prestige, spriteSize, obsIn,
     GEAR_BY, gearFx, achValue, achGoal, achProgress, checkAch, markDay, gearState, buyGear, equip, addShells, newRec,
   };
