@@ -99,7 +99,13 @@
       if (this.open === 'tree') { $('treeCoins').textContent = KL.fmt(s.coins); $('treePearls').textContent = KL.fmt(s.pearls); }
     },
     bump(id) { const el = $(id); el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); },
+    // phones get a joystick at the bottom while casting, so the thumb does not hide the hook
+    touch: !!(root.matchMedia && root.matchMedia('(pointer: coarse)').matches) || (navigator.maxTouchPoints || 0) > 0,
+    useStick() { return this.touch && this.g && this.g.save.settings.ctrl !== 'touch'; },
     setMode(mode) {
+      const stick = mode === 'cast' && this.useStick();
+      $('stick').classList.toggle('hidden', !stick);
+      document.body.classList.toggle('stick-on', stick);
       $('dock').classList.toggle('hidden', mode !== 'dock');
       $('hudRight').classList.toggle('hidden', mode === 'cast');
       $('castInfo').classList.toggle('hidden', mode !== 'cast');
@@ -461,6 +467,7 @@
         <div class="set-row" style="--acc:var(--accent)">${ic('music')}<span>${t('music')}</span>${seg('music', onoff)}</div>
         <div class="set-row" style="--acc:var(--accent)">${ic('vibe')}<span>${t('haptics')}</span>${seg('haptics', onoff)}</div>
         <div class="set-row" style="--acc:var(--accent)">${ic('globe')}<span>${t('language')}</span>${seg('lang', [['id', 'ID'], ['en', 'EN']])}</div>
+        ${this.touch ? `<div class="set-row set-wrap" style="--acc:var(--accent)">${ic('hook')}<span>${t('ctrl')}</span>${seg('ctrl', [['stick', t('ctrlStick')], ['touch', t('ctrlTouch')]])}</div>` : ''}
         <div class="set-row set-wrap" style="--acc:var(--accent)">${ic('steer')}<span>${t('orient')}</span>${seg('orient', [['auto', t('orAuto')], ['land', t('orLand')], ['port', t('orPort')]])}</div>
         <p class="set-note">${KL.lang === 'id' ? 'Lemparan' : 'Casts'}: ${KL.fmt(s.casts)} · ${KL.lang === 'id' ? 'Total koin' : 'Lifetime coins'}: ${KL.fmt(s.lifetime)} · ${t('seasonN')} ${s.seasons + 1}</p>
         <div class="set-row"><button class="btn" id="setExport">${ic('download')}<span>${t('menuExport')}</span></button><button class="btn" id="setImport">${ic('upload')}<span>${t('menuImport')}</span></button></div>
@@ -469,7 +476,7 @@
       $('setList').querySelectorAll('.seg button').forEach((b) => {
         b.onclick = () => {
           const k = b.dataset.k;
-          s.settings[k] = k === 'lang' || k === 'orient' ? b.dataset.v : b.dataset.v === 'true';
+          s.settings[k] = k === 'lang' || k === 'orient' || k === 'ctrl' ? b.dataset.v : b.dataset.v === 'true';
           KL.Audio.click();
           this.g.applySettings();
           this.openSettings();

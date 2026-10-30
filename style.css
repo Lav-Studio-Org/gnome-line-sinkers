@@ -86,6 +86,16 @@ canvas#game { position: fixed; inset: 0; width: 100%; height: 100%; display: blo
 .banner b { font-size: 1.5em; font-weight: 600; }
 @keyframes slidein { from { transform: translateX(-12px); opacity: 0; } }
 
+/* ---------- joystick (touch, while casting) ---------- */
+.stick { position: fixed; right: calc(var(--u) * 2 + var(--safe-r)); bottom: calc(var(--u) * 1.6 + var(--safe-b));
+  width: max(108px, calc(var(--u) * 10)); height: max(108px, calc(var(--u) * 10)); touch-action: none; z-index: 5; }
+.stick-base { position: absolute; inset: 0; border-radius: 50%; border: var(--line); background: rgba(20, 18, 28, .35);
+  box-shadow: var(--shadow), inset 0 0 0 calc(var(--u) * 1.6) rgba(243, 234, 215, .12); }
+.stick-knob { position: absolute; left: 50%; top: 50%; width: 44%; height: 44%; margin: -22% 0 0 -22%; border-radius: 50%;
+  background: var(--accent); border: var(--line); box-shadow: 0 3px 0 var(--ink); }
+.stick.on .stick-knob { background: var(--accent-2); }
+body.stick-on .hint { bottom: calc(var(--u) * 1.2 + var(--safe-b)); right: calc(max(108px, var(--u) * 10) + var(--u) * 3.5 + var(--safe-r)); }
+
 /* ---------- dock ---------- */
 .dock { position: fixed; left: calc(var(--u) * .9 + var(--safe-l)); right: calc(var(--u) * .9 + var(--safe-r)); bottom: calc(var(--u) * .9 + var(--safe-b));
   display: flex; align-items: flex-end; gap: calc(var(--u) * .8); pointer-events: none; }
@@ -330,6 +340,8 @@ body.port { --u: clamp(9px, 3.3vw, 14px); --tap: max(44px, calc(var(--u) * 3.5))
 .port .btn-tree { order: 2; flex: 1; justify-content: center; }
 .port .btn-auto { order: 3; flex: 1; justify-content: center; }
 .port .hint { left: calc(var(--u) * .9 + var(--safe-l)); right: calc(var(--u) * .9 + var(--safe-r)); max-width: none; }
+.port .stick { right: auto; left: 50%; margin-left: calc(var(--u) * -5.5); width: calc(var(--u) * 11); height: calc(var(--u) * 11); bottom: calc(var(--u) * 2 + var(--safe-b)); }
+body.port.stick-on .hint { right: calc(var(--u) * .9 + var(--safe-r)); bottom: calc(var(--u) * 14.5 + var(--safe-b)); }
 .port .banner { left: calc(var(--u) * .9 + var(--safe-l)); top: calc(var(--u) * 9); }
 .port .toasts { left: calc(var(--u) * .9 + var(--safe-l)); right: calc(var(--u) * .9); top: calc(var(--u) * 5.2); }
 .port .toast { max-width: 100%; }

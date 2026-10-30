@@ -31,6 +31,8 @@ for fonts and the sprite sheet.)
 
 Controls: tap the sea to cast. While the hook is underwater it chases your finger or cursor;
 let go and it keeps sinking straight. Arrow keys / WASD work too, Space casts and collects.
+On phones a joystick at the bottom steers the hook while casting, so your thumb does not cover
+it (Settings > Controls switches back to touching the sea).
 
 The start menu has Continue / New game, **Save to file** (downloads a `.sav` save) and
 **Load from file**. Saves, in the file and in the browser, are scrambled with a keyed checksum

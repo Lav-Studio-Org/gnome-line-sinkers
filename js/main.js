@@ -80,6 +80,7 @@
       this.run = run;
       this.target = run.x;
       this.pointer.on = false;
+      if (this.stickReset) this.stickReset();
       this.manualT = 0;
       this.mode = 'cast';
       this.moon = run.moon;
@@ -87,7 +88,7 @@
       R.ripple(run.x);
       R.burst(run.x, 1, 8);
       if (this.moon) UI.banner(t('moonNight'), '');
-      if (this.save.casts < 3) UI.hint(t('hintSteer'));
+      if (this.save.casts < 3) UI.hint(t(UI.useStick() ? 'hintStick' : 'hintSteer'));
       KL.Music.activity = 1;
     },
 
@@ -313,6 +314,34 @@
   const endDrag = (e) => { if (g.pointer.id === e.pointerId && g.pointer.touch) g.pointer.on = false; };
   cv.addEventListener('pointerup', endDrag);
   cv.addEventListener('pointercancel', endDrag);
+  // joystick: an analog stick for the thumb; x moves the hook sideways, y pulls it up or down
+  const stickEl = document.getElementById('stick'), knob = stickEl.querySelector('.stick-knob');
+  g.stick = { on: false, id: null, x: 0, y: 0 };
+  const stickAt = (e) => {
+    const r = stickEl.getBoundingClientRect(), rad = r.width / 2;
+    let dx = (e.clientX - r.left - rad) / rad, dy = (e.clientY - r.top - rad) / rad;
+    const m = Math.hypot(dx, dy);
+    if (m > 1) { dx /= m; dy /= m; }
+    g.stick.x = dx; g.stick.y = dy;
+    knob.style.transform = `translate(${dx * rad * 0.6}px, ${dy * rad * 0.6}px)`;
+  };
+  g.stickReset = () => {
+    g.stick = { on: false, id: null, x: 0, y: 0 };
+    knob.style.transform = '';
+    stickEl.classList.remove('on');
+  };
+  const stickEnd = (e) => { if (g.stick.id === e.pointerId) g.stickReset(); };
+  stickEl.addEventListener('pointerdown', (e) => {
+    if (g.mode !== 'cast') return;
+    e.preventDefault();
+    g.stick.on = true; g.stick.id = e.pointerId; g.manualT = 1.5;
+    try { stickEl.setPointerCapture(e.pointerId); } catch (err) { /* synthetic pointer */ }
+    stickEl.classList.add('on');
+    stickAt(e);
+  });
+  stickEl.addEventListener('pointermove', (e) => { if (g.stick.on && g.stick.id === e.pointerId) { stickAt(e); g.manualT = 1.5; } });
+  stickEl.addEventListener('pointerup', stickEnd);
+  stickEl.addEventListener('pointercancel', stickEnd);
   addEventListener('keydown', (e) => {
     g.keys.add(e.key.toLowerCase());
     if (e.key === ' ' || e.key === 'Enter') {
@@ -356,10 +385,16 @@
       let tgt = null;
       const kx = (k.has('arrowright') || k.has('d') ? 1 : 0) - (k.has('arrowleft') || k.has('a') ? 1 : 0);
       const ky = (k.has('arrowdown') || k.has('s') ? 1 : 0) - (k.has('arrowup') || k.has('w') ? 1 : 0);
+      const st = g.stick, dead = (v) => (Math.abs(v) < 0.15 ? 0 : (v - Math.sign(v) * 0.15) / 0.85);
       if (kx || ky) {
         g.pointer.on = false; g.manualT = 1.5;
         g.target = Math.max(1, Math.min(R.worldW - 1, g.target + kx * sp * dt));
         tgt = ky ? { x: g.target, y: run.y + ky * 12 } : g.target;
+      } else if (st.on) {
+        const jx = dead(st.x), jy = dead(st.y);
+        g.pointer.on = false; g.manualT = 1.5;
+        g.target = Math.max(1, Math.min(R.worldW - 1, g.target + jx * sp * 1.3 * dt));
+        tgt = jy ? { x: g.target, y: run.y + jy * 12 } : g.target;
       } else if (g.pointer.on) {
         tgt = toWorld(g.pointer.sx, g.pointer.sy);
         g.target = tgt.x;
