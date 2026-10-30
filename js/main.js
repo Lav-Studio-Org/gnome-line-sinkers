@@ -167,6 +167,7 @@
         UI.toast(R.url(sp.sprite, sp.shadow ? 'shadow' : ''), t('newSpecies'), KL.name(sp.name));
         A.discover();
       }, 300 + i * 450));
+      this.achCheck(300 + fresh.length * 450);
       this.mode = 'dock';
       this.run = null;
       this.refresh();
@@ -179,9 +180,22 @@
     },
 
     buzz(ms) { if (this.save.settings.haptics && navigator.vibrate) try { navigator.vibrate(ms); } catch (e) { /* not allowed */ } },
-    onBought() { this.refresh(); this.newPreview(true); this.persist(); },
+    onBought() { this.refresh(); this.newPreview(true); this.achCheck(400); this.persist(); },
+    onGear() { this.refresh(); this.newPreview(true); this.achCheck(400); this.persist(); },
+    // unlocks achievements whose goal is met and shows them one after another
+    achCheck(delay) {
+      const s = this.save;
+      E.markDay(s, new Date().toLocaleDateString('sv'), Date.now());
+      const got = E.checkAch(s);
+      // a pile of unlocks at once (an old save, a big jump) shows the rarest two and a summary
+      const show = got.length > 3 ? got.slice().sort((x, y) => y.tier - x.tier).slice(0, 2) : got;
+      show.forEach((a, i) => setTimeout(() => { UI.achToast(a); A.discover(); UI.bump('shellPill'); }, (delay || 0) + i * 700));
+      if (got.length > show.length) setTimeout(() => UI.toast(null, t('achUnlocked'), t('achMore', { n: got.length - show.length })), (delay || 0) + show.length * 700);
+      if (got.length) { UI.hud(); if (UI.open === 'book' && UI.paper === 'trophy') UI.renderTrophy(); }
+      return got;
+    },
     onSeason(gain) {
-      this.refresh(); this.newPreview(true); this.persist();
+      this.refresh(); this.newPreview(true); this.achCheck(600); this.persist();
       UI.banner(t('season'), `+${gain} ${t('pearls')}`);
     },
     onScreenClosed() { this.refresh(); UI.hud(); if (this.save.auto && this.stats.auto && this.mode === 'dock') this.autoT = 1; },
@@ -357,7 +371,7 @@
 
     hudT -= dt;
     if (hudT <= 0) { hudT = 0.12; UI.hud(); }
-    if (now - g.lastSave > 5000) { g.lastSave = now; g.persist(); }
+    if (now - g.lastSave > 5000) { g.lastSave = now; if (g.mode !== 'cast') g.achCheck(); g.persist(); }
     requestAnimationFrame(loop);
   }
 
@@ -377,6 +391,9 @@
     UI.setMode('dock');
     UI.hud();
     UI.openMenu();
+    E.markDay(g.save, new Date().toLocaleDateString('sv'), Date.now());
+    E.checkAch(g.save);
+    if (g.save.seenAch == null) g.save.seenAch = 0;
     g.persist();
     requestAnimationFrame((n) => { last = n; loop(n); });
   });
@@ -387,5 +404,7 @@
     give(coins, pearls) { g.save.coins += coins || 0; if (pearls) { g.save.pearls += pearls; g.save.pearlsEver += pearls; } g.refresh(); UI.hud(); },
     setNodes(map) { Object.assign(g.save.nodes, map); g.refresh(); UI.hud(); },
     cast: (x) => g.cast(x),
+    shells(n) { E.addShells(g.save, n); UI.hud(); },
+    rec(map) { Object.assign(g.save.rec, map); g.achCheck(); UI.hud(); },
   };
 })(this);

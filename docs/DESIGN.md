@@ -105,3 +105,57 @@ replacing progress.
 **Gnome, Line & Sinker**: the gnome is the angler, "hook, line and sinker" is the fishing idiom
 for being completely caught (what an incremental wants to do to you), and the sinker is the
 weight you steer. Tagline: "A fishing incremental".
+
+## 9. Achievements and activity
+
+57 achievements in five rarity tiers, read straight from the save (`E.achValue`), so old saves
+unlock what they already earned the first time they load:
+
+| Tier | Count | Shells | Meant for |
+|---|---|---|---|
+| Umum / Common | 10 | 3 | the first ten minutes (first fish, first mine, first purchase) |
+| Langka / Uncommon | 13 | 6 | the first evening (Twilight, 1,000 fish, first golden fish) |
+| Epik / Rare | 14 | 12 | committed players (the Trench, a new season, 10 hours) |
+| Legendaris / Epic | 11 | 25 | weeks of play (Weird Deep, a titan, every species) |
+| Mitos / Mythic | 9 | 50 | almost nobody (a million fish, 5 km, every variant incl. titans) |
+
+The activity record (`save.rec`) never resets with a season: fish, junk, mutations by kind,
+biggest haul, most fish in one cast, full crates, mines, stings, fish lost, full moons, metres of
+line dropped, time fishing, days played, first day, and the most valuable fish ever caught. The
+Trophies screen shows it as tiles, with the best fish and the most caught fish as big cards.
+
+## 10. Shop: gnome outfits and boats
+
+Research notes: cosmetic collections keep idle games alive between upgrades when they are tied
+to milestones rather than to the main currency (Cats & Soup outfits, Tap Titans skins); fishing
+games make the boat the player's identity and give each one a role (Dredge hull upgrades,
+Fishing Clash boats). Rules we took from that:
+
+- **Own currency, shells.** Coins inflate by many orders of magnitude and reset each season, so
+  a coin price would be meaningless a week later. Shells only come from achievements, new
+  species (1), mastering a fish (2 at 250, 5 at 1000 caught) and each new season (5). They are
+  finite and tied to playing well, so every item marks a real milestone.
+- **One outfit plus one boat, perks while worn.** Choosing is the game: the Lighthouse Keeper is
+  best for idle players, the Lucky Gnome for mutation hunters, the Abyss Gnome only pays in the
+  Trench. Every perk is an existing skill effect (or value / deep value / full moon), small
+  enough to be a nudge (+10 to 35%) and never a new mechanic.
+- **Gates.** Each item needs a zone reached; the Golden Gnome needs the Living Encyclopedia
+  achievement and the Ghost Ship needs Two Kilometres. Locked items show the requirement.
+- **Kept forever.** Outfits and boats survive new seasons, which also makes a fresh season
+  start faster.
+- **Indonesian boats.** Sampan, jukung (outrigger), perahu ketek (long-tail), pinisi, then a
+  research vessel, a trawler, a mini sub and a ghost ship. Each is drawn in code
+  (`paintBoat` in `js/render.js`); outfits recolour the gnome sprite (`dressGnome`).
+
+All 15 items cost 1,615 shells; a player who earns everything else can buy all of them (checked
+in `scripts/test-engine.js`), and the Full Fleet achievement is the last step.
+
+## 11. Share card
+
+A 1080 x 1350 image (4:5, fits the Instagram feed, Stories with a border, and WhatsApp): the
+gnome on the boat and outfit you wear, a flat band per zone you reached with the line down to
+your best fish, the fish count as the headline, six tiles (deepest, species, time played,
+achievements, lifetime coins, season), the rarest achievement as a ribbon, and a Lav Studio
+footer. Buttons: Share (system share sheet with the image where supported), Save image, and
+WhatsApp (text). Instagram has no web share link, so the hint says to save the image and post
+it, or to use the share sheet on phones.

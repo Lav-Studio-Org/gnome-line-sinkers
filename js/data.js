@@ -179,7 +179,7 @@
 
   // Cost of a node = TIER[t] * c * g^level. TIER is roughly "15 casts of income" at the start of
   // each zone; scripts/balance.js --tune fits it to the pacing targets in docs/BALANCE.md.
-  const TIER = [33, 800, 530000, 210000000, 11000000000, 550000000000];
+  const TIER = [33, 1300, 840000, 190000000, 9500000000, 480000000000];
   NODES.forEach((n) => { if (n.t != null) n.k = n.c; });
   function applyTier(T) {
     T.forEach((v, i) => { TIER[i] = v; });
@@ -187,8 +187,106 @@
   }
   applyTier(TIER);
 
+
+  // Achievements, from easy to very rare. tier 0..4 = Umum/Common .. Mitos/Mythic; each pays
+  // SHELL_PAY[tier] shells. k is the stat it reads (engine achValue), goal the target.
+  // Names and descriptions live here so the share card and the trophy screen read the same data.
+  const A = (id, tier, icon, k, goal, nameId, nameEn) => ({ id, tier, icon, k, goal, name: { id: nameId, en: nameEn } });
+  const ACH = [
+    A('fish1',     0, 'fish',    'fish',     1,     'Gigitan Pertama',     'First Bite'),
+    A('cast10',    0, 'hook',    'casts',    10,    'Mulai Terbiasa',      'Getting the Hang of It'),
+    A('fish100',   0, 'fish',    'fish',     100,   'Ember Penuh',         'Full Bucket'),
+    A('reef',      0, 'wave',    'depth',    30,    'Halo, Terumbu',       'Hello, Reef'),
+    A('sp10',      0, 'book',    'species',  10,    'Pencatat Ikan',       'Fish Notes'),
+    A('coin1k',    0, 'coin',    'coins',    1e3,   'Uang Jajan',          'Pocket Money'),
+    A('junk10',    0, 'recycle', 'junk',     10,    'Pembersih Laut',      'Sea Sweeper'),
+    A('sting1',    0, 'help',    'sting',    1,     'Aduh, Bulu Babi',     'Ouch, Urchin'),
+    A('boom1',     0, 'bolt',    'boom',     1,     'Kejutan Ranjau',      'Surprise Mine'),
+    A('gear1',     0, 'shop',    'gear',     1,     'Gaya Baru',           'New Look'),
+
+    A('fish1k',    1, 'fish',    'fish',     1000,  'Nelayan Sungguhan',   'Real Angler'),
+    A('cast250',   1, 'hook',    'casts',    250,   'Lengan Kuat',         'Strong Arm'),
+    A('blue',      1, 'wave',    'depth',    90,    'Laut Lepas',          'Open Water'),
+    A('dusk',      1, 'moon',    'depth',    220,   'Cahaya Terakhir',     'Last Light'),
+    A('sp25',      1, 'book',    'species',  25,    'Kolektor',            'Collector'),
+    A('coin1m',    1, 'coin',    'coins',    1e6,   'Jutawan Pantai',      'Beach Millionaire'),
+    A('haul10',    1, 'stack',   'haulFish', 10,    'Satu Kail Sepuluh',   'Ten on a Line'),
+    A('full25',    1, 'crate',   'full',     25,    'Peti Selalu Penuh',   'Always Full'),
+    A('moon1',     1, 'moon',    'moon',     1,     'Malam Purnama',       'Full Moon'),
+    A('gold1',     1, 'coin',    'gold',     1,     'Sisik Emas',          'Golden Scales'),
+    A('time1h',    1, 'timer',   'time',     3600,  'Satu Jam di Laut',    'An Hour at Sea'),
+    A('days3',     1, 'sparkle', 'days',     3,     'Balik Lagi',          'Back Again'),
+    A('var50',     1, 'gem',     'variants', 50,    'Mata Jeli',           'Sharp Eye'),
+
+    A('fish10k',   2, 'fish',    'fish',     1e4,   'Legenda Dermaga',     'Pier Legend'),
+    A('cast2500',  2, 'hook',    'casts',    2500,  'Tak Kenal Lelah',     'Tireless'),
+    A('trench',    2, 'target',  'depth',    480,   'Ke Dalam Palung',     'Into the Trench'),
+    A('sp40',      2, 'book',    'species',  40,    'Ahli Biologi Laut',   'Marine Biologist'),
+    A('coin1b',    2, 'coin',    'coins',    1e9,   'Miliarder Bahari',    'Sea Billionaire'),
+    A('prism1',    2, 'sparkle', 'prism',    1,     'Pelangi di Air',      'Rainbow in the Water'),
+    A('season1',   2, 'pearl',   'seasons',  1,     'Musim Kedua',         'Second Season'),
+    A('haul40',    2, 'net',     'haulFish', 40,    'Pukat Penuh',         'Bursting Trawl'),
+    A('master1',   2, 'star',    'master',   1,     'Sang Ahli',           'The Expert'),
+    A('time10h',   2, 'timer',   'time',     36000, 'Pelaut Sejati',       'True Sailor'),
+    A('days7',     2, 'sparkle', 'days',     7,     'Seminggu Memancing',  'A Week of Fishing'),
+    A('gear5',     2, 'shop',    'gear',     5,     'Lemari Gnome',        'Gnome Wardrobe'),
+    A('full250',   2, 'crate',   'full',     250,   'Juragan Peti',        'Crate Boss'),
+    A('var150',    2, 'gem',     'variants', 150,   'Pemburu Varian',      'Variant Hunter'),
+
+    A('fish100k',  3, 'fish',    'fish',     1e5,   'Raja Nelayan',        'Fisher King'),
+    A('weird',     3, 'eye',     'depth',    1050,  'Yang Aneh-Aneh',      'Something Weird'),
+    A('sp60',      3, 'book',    'species',  60,    'Ensiklopedia Hidup',  'Living Encyclopedia'),
+    A('coin1t',    3, 'coin',    'coins',    1e12,  'Triliuner Samudra',   'Ocean Trillionaire'),
+    A('titan1',    3, 'crown',   'titan',    1,     'Ikan Raksasa',        'Titan Catch'),
+    A('season5',   3, 'pearl',   'seasons',  5,     'Lima Musim',          'Five Seasons'),
+    A('pearl40',   3, 'pearl',   'pearls',   40,    'Kalung Mutiara',      'Pearl Necklace'),
+    A('master5',   3, 'star',    'master',   5,     'Guru Besar',          'Grandmaster'),
+    A('d2000',     3, 'target',  'depth',    2000,  'Dua Kilometer',       'Two Kilometres'),
+    A('spAll',     3, 'book',    'species',  0,     'Semua Tertangkap',    'Caught Them All'),
+    A('days30',    3, 'sparkle', 'days',     30,    'Sebulan Setia',       'A Loyal Month'),
+
+    A('fish1m',    4, 'fish',    'fish',     1e6,   'Sejuta Ikan',         'A Million Fish'),
+    A('d5000',     4, 'target',  'depth',    5000,  'Dasar Dunia',         'Bottom of the World'),
+    A('varAll',    4, 'gem',     'variants', 0,     'Tak Ada yang Terlewat', 'Nothing Missed'),
+    A('coin1qa',   4, 'coin',    'coins',    1e15,  'Harta Karun',         'Sunken Treasure'),
+    A('titan25',   4, 'crown',   'titan',    25,    'Pawang Raksasa',      'Titan Tamer'),
+    A('season25',  4, 'pearl',   'seasons',  25,    'Penjaga Musim',       'Keeper of Seasons'),
+    A('master25',  4, 'star',    'master',   25,    'Mahaguru Laut',       'Sea Sage'),
+    A('time100h',  4, 'timer',   'time',     360000, 'Gnome Laut Abadi',   'Eternal Sea Gnome'),
+    A('gearAll',   4, 'crown',   'gear',     0,     'Armada Lengkap',      'Full Fleet'),
+  ];
+  const SHELL_PAY = [3, 6, 12, 25, 50];
+
+  // Gnome outfits and boats, bought with shells. Equip one of each; the perk works while it is
+  // equipped. fx keys are the skill tree effect keys (added on top of the tree), plus
+  // gvalue (all fish value x(1+v)), deep (fish from the Trench down x(1+v)) and moon
+  // (a full moon every few casts). zone: deepest zone needed to buy; ach: achievement needed.
+  // pal: gnome recolour [hat light, hat dark, beard, shirt]. See docs/DESIGN.md section 10.
+  const G = (id, kind, cost, zone, nameId, nameEn, descId, descEn, fx, extra) =>
+    Object.assign({ id, kind, cost, zone, name: { id: nameId, en: nameEn }, desc: { id: descId, en: descEn }, fx }, extra || {});
+  const GEAR = [
+    G('classic', 'skin', 0,   0, 'Gnome Klasik', 'Classic Gnome', 'Topi merah kesayangan. Tanpa bonus, penuh gaya.', 'The trusty red hat. No perk, all style.', {}, { pal: ['#ff6a4d', '#d8452f', '#f4efe6', '#3f6fb5'] }),
+    G('straw',   'skin', 10,  0, 'Pemulung Pantai', 'Beachcomber', 'Sampah x2 nilainya, jangkauan kail +10%.', 'Junk worth x2, hook reach +10%.', { junk: 1, reach: 0.1 }, { pal: ['#f2cf6b', '#c99a3b', '#f4efe6', '#3f9f58'] }),
+    G('diver',   'skin', 30,  1, 'Penyelam', 'Diver', 'Kail turun 15% lebih cepat, kemudi +10%.', 'Hook sinks 15% faster, steering +10%.', { sink: 0.15, steer: 0.1 }, { pal: ['#ffd23f', '#e0a91a', '#f4efe6', '#1f6f8b'], acc: 'mask' }),
+    G('chef',    'skin', 40,  2, 'Koki Kapal', 'Ship Cook', 'Semua ikan +10% nilai.', 'All fish +10% value.', { gvalue: 0.1 }, { pal: ['#fbf7ef', '#d9d2c4', '#f4efe6', '#e0473a'] }),
+    G('keeper',  'skin', 55,  2, 'Penjaga Mercusuar', 'Lighthouse Keeper', 'Keramba +30%, batas offline +3 jam.', 'Fish pen +30%, offline limit +3 h.', { pondmul: 0.3, offline: 3 }, { pal: ['#2f4d8a', '#1f335f', '#d9e2f2', '#f5b82e'] }),
+    G('lucky',   'skin', 70,  3, 'Gnome Hoki', 'Lucky Gnome', 'Peluang mutasi +30%, ikan langka +15%.', 'Mutation chance +30%, rare fish +15%.', { mut: 0.3, rare: 0.15 }, { pal: ['#3f9f58', '#2b7a40', '#f4efe6', '#f5b82e'] }),
+    G('captain', 'skin', 110, 4, 'Kapten Tua', 'Old Captain', 'Tarik 20% lebih cepat, pelindung kail +1.', 'Reel 20% faster, hook guard +1.', { reel: 0.2, guard: 1 }, { pal: ['#26304a', '#151b2c', '#f4efe6', '#26304a'], acc: 'badge' }),
+    G('abyss',   'skin', 170, 5, 'Gnome Jurang', 'Abyss Gnome', 'Ikan dari Palung ke bawah +35% nilai.', 'Fish from the Trench down +35% value.', { deep: 0.35 }, { pal: ['#7a4fd1', '#4e2f94', '#7af0ff', '#1a1030'] }),
+    G('golden',  'skin', 260, 0, 'Gnome Emas', 'Golden Gnome', 'Semua ikan +15% nilai, ikan bermutasi +30% lagi.', 'All fish +15% value, mutated fish another +30%.', { gvalue: 0.15, mutval: 0.3 }, { pal: ['#f5b82e', '#c98a12', '#ffe08a', '#c98a12'], ach: 'sp60' }),
+
+    G('sampan',   'boat', 0,   0, 'Sampan', 'Rowboat', 'Perahu kayu pertama. Tanpa bonus.', 'Your first wooden boat. No perk.', {}),
+    G('jukung',   'boat', 20,  0, 'Jukung', 'Outrigger', '+1 ikan per lemparan, tarik +10%.', '+1 fish per cast, reel +10%.', { cap: 1, reel: 0.1 }),
+    G('ketek',    'boat', 40,  2, 'Perahu Ketek', 'Longtail', 'Tarik 25% lebih cepat, kemudi +15%.', 'Reel 25% faster, steering +15%.', { reel: 0.25, steer: 0.15 }),
+    G('pinisi',   'boat', 70,  3, 'Pinisi', 'Pinisi', '+2 ikan per lemparan, peti penuh +15%.', '+2 fish per cast, full crate +15%.', { cap: 2, full: 0.15 }),
+    G('riset',    'boat', 120, 4, 'Kapal Riset', 'Research Vessel', 'Sonar gratis, ikan langka +25%, pelindung +1.', 'Free sonar, rare fish +25%, guard +1.', { sonar: 1, rare: 0.25, guard: 1 }),
+    G('pukat',    'boat', 130, 4, 'Kapal Pukat', 'Trawler', '+4 ikan per lemparan, borongan +0.5% per ikan.', '+4 fish per cast, bulk +0.5% per fish.', { cap: 4, bulk: 0.005 }),
+    G('selam',    'boat', 190, 5, 'Kapal Selam Mini', 'Mini Sub', 'Jatuh bebas +10% tali, turun +20%.', 'Free fall +10% of the line, sink +20%.', { fall: 0.1, sink: 0.2 }),
+    G('hantu',    'boat', 300, 0, 'Kapal Hantu', 'Ghost Ship', 'Malam purnama lebih sering, mutasi x1.3.', 'Full moons come sooner, mutations x1.3.', { moon: 1, mutx: 0.3 }, { ach: 'd2000' }),
+  ];
+
   const MASTERY = [10, 50, 250, 1000]; // catches per species; each step: +25% for that species
 
-  const D = { ZONES, SPECIES, MUTATIONS, NODES, MASTERY, TIER, applyTier };
+  const D = { ZONES, SPECIES, MUTATIONS, NODES, MASTERY, TIER, applyTier, ACH, SHELL_PAY, GEAR };
   if (typeof module !== 'undefined') module.exports = D; else (root.KL = root.KL || {}).DATA = D;
 })(this);

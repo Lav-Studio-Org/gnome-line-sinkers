@@ -45,7 +45,8 @@
       c.width = r[2]; c.height = r[3];
       const x = c.getContext('2d');
       x.drawImage(this.img, r[0], r[1], r[2], r[3], 0, 0, r[2], r[3]);
-      if (v) recolor(x, r[2], r[3], v);
+      if (v && v.startsWith('skin:')) dressGnome(x, r[2], r[3], E.GEAR_BY[v.slice(5)] || E.GEAR_BY.classic);
+      else if (v) recolor(x, r[2], r[3], v);
       return (this.cache[key] = c);
     },
     // Sprite for the DOM (haul list, fishdex) as a data URL at 3x; shown at its natural size so
@@ -60,6 +61,35 @@
       x.imageSmoothingEnabled = false;
       x.drawImage(src, 0, 0, c.width, c.height);
       return (this.cache[key] = c.toDataURL());
+    },
+    // A boat with a gnome on it (80 x 48 art pixels), for the shop and the share card.
+    boatCanvas(boat, skin) {
+      const key = 'boatc|' + boat + '|' + skin;
+      if (this.cache[key]) return this.cache[key];
+      const W = 80, H = 48, cx = 40, by = 34;
+      const c = document.createElement('canvas');
+      c.width = W; c.height = H;
+      const x = c.getContext('2d');
+      paintBoat(x, cx, by, boat, 0.6, 'back');
+      paintBoat(x, cx, by, boat, 0.6, 'hull');
+      x.drawImage(this.variant('gnome', 'skin:' + skin), cx + 2, by - 13);
+      paintBoat(x, cx, by, boat, 0.6, 'front');
+      x.fillStyle = '#5a3a22';
+      for (let i = 0; i < 18; i++) x.fillRect(Math.round(cx + 10 + Math.cos(-0.73) * i), Math.round(by - 7 + Math.sin(-0.73) * i), 1, 1);
+      x.fillStyle = '#3f8f8a';
+      for (let i = cx - 34; i < cx + 34; i += 2) x.fillRect(i, by + 7 + Math.round(Math.sin(i * 0.3)), 2, 3);
+      return (this.cache[key] = c);
+    },
+    boatPic(boat, skin, scale) {
+      const key = 'boat|' + boat + '|' + skin + '|' + scale;
+      if (this.cache[key]) return this.cache[key];
+      const c = this.boatCanvas(boat, skin);
+      const out = document.createElement('canvas');
+      out.width = c.width * scale; out.height = c.height * scale;
+      const o = out.getContext('2d');
+      o.imageSmoothingEnabled = false;
+      o.drawImage(c, 0, 0, out.width, out.height);
+      return (this.cache[key] = out.toDataURL());
     },
     fishVariant(f) {
       const sp = SPECIES[f.sp];
@@ -334,20 +364,17 @@
       const bob = Math.round(Math.sin(this.t * 1.4) * 1);
       const cx = Math.round(this.worldW * 0.5 * PXM) + this.ox;
       const by = s - 6 + bob;
-      // hull
-      ctx.fillStyle = '#14121c';
-      ctx.fillRect(cx - 24, by, 48, 9); ctx.fillRect(cx - 26, by - 2, 52, 3);
-      ctx.fillStyle = '#8a4f2b'; ctx.fillRect(cx - 23, by, 46, 7);
-      ctx.fillStyle = '#b8743f'; ctx.fillRect(cx - 25, by - 1, 50, 2);
-      ctx.fillStyle = '#ff6b3d'; ctx.fillRect(cx - 23, by + 3, 46, 2);
-      ctx.fillStyle = '#6a3a1f'; ctx.fillRect(cx - 21, by + 7, 42, 2);
+      const boat = (g.save && g.save.gear.boat) || 'sampan';
+      paintBoat(ctx, cx, by, boat, this.t, 'back');
+      paintBoat(ctx, cx, by, boat, this.t, 'hull');
       // crate of fish on deck
       ctx.fillStyle = '#14121c'; ctx.fillRect(cx - 19, by - 9, 13, 8);
       ctx.fillStyle = '#c99a5b'; ctx.fillRect(cx - 18, by - 8, 11, 6);
       ctx.fillStyle = '#9b6d3a'; ctx.fillRect(cx - 18, by - 5, 11, 1);
-      // gnome
-      const gn = this.variant('gnome', '');
+      // gnome, in the outfit you wear
+      const gn = this.variant('gnome', 'skin:' + ((g.save && g.save.gear.skin) || 'classic'));
       ctx.drawImage(gn, cx + 2, by - 13);
+      paintBoat(ctx, cx, by, boat, this.t, 'front');
       // cat (once bought)
       if (g.cat) {
         ctx.fillStyle = '#14121c'; ctx.fillRect(cx - 4, by - 6, 6, 5); ctx.fillRect(cx - 4, by - 8, 1, 2); ctx.fillRect(cx + 1, by - 8, 1, 2);
@@ -827,6 +854,121 @@
   }
   const GOLD = ['#3a2400', '#7a4e00', '#b8800c', '#e9ae22', '#ffd257', '#ffef9e', '#fffbe0'];
   const SHADOW = ['#120a22', '#2e1a4f', '#4b2d78', '#6d47a3', '#9470cf', '#b99af0'];
+  // Outfits: swap the hat, beard and shirt colours of the gnome sprite, then add the extras.
+  const GNOME_PAL = ['#ff6a4d', '#d8452f', '#f4efe6', '#3f6fb5'];
+  function dressGnome(x, w, h, g) {
+    const im = x.getImageData(0, 0, w, h);
+    const d = im.data;
+    const from = GNOME_PAL.map((c) => hex(c).join(','));
+    const to = g.pal.map(hex);
+    for (let i = 0; i < d.length; i += 4) {
+      if (!d[i + 3]) continue;
+      const k = from.indexOf(d[i] + ',' + d[i + 1] + ',' + d[i + 2]);
+      if (k >= 0) { d[i] = to[k][0]; d[i + 1] = to[k][1]; d[i + 2] = to[k][2]; }
+    }
+    x.putImageData(im, 0, 0);
+    if (g.acc === 'mask') { x.fillStyle = '#14121c'; x.fillRect(1, 6, 7, 1); x.fillStyle = '#8fd3e8'; x.fillRect(2, 6, 2, 1); x.fillRect(5, 6, 2, 1); }
+    if (g.acc === 'badge') { x.fillStyle = '#f5b82e'; x.fillRect(4, 3, 1, 1); x.fillRect(1, 5, 8, 1); }
+  }
+
+  // Boats. layer 'back' is drawn behind the crate and gnome (masts, cabins), 'hull' the boat,
+  // 'front' anything in front of the gnome. by = deck line, cx = centre (art pixels).
+  function paintBoat(c, cx, by, id, t, layer) {
+    const R = (col, x, y, w, h) => { c.fillStyle = col; c.fillRect(cx + x, by + y, w, h); };
+    const INK = '#14121c';
+    const hull = (main, top, stripe, low, w) => {
+      R(INK, -w / 2, 0, w, 9); R(INK, -w / 2 - 2, -2, w + 4, 3);
+      R(main, -w / 2 + 1, 0, w - 2, 7); R(top, -w / 2 - 1, -1, w + 2, 2);
+      R(stripe, -w / 2 + 1, 3, w - 2, 2); R(low, -w / 2 + 3, 7, w - 6, 2);
+    };
+    switch (id) {
+      case 'jukung':
+        if (layer === 'hull') {
+          // outrigger arms and floats
+          R(INK, -36, -1, 72, 1); R('#c99a5b', -34, -2, 68, 1);
+          for (const fx of [-38, 30]) { R(INK, fx, 3, 9, 4); R('#f3ead7', fx + 1, 4, 7, 2); }
+          hull('#f3ead7', '#2f7a9a', '#ff6b3d', '#cdb995', 44);
+          R(INK, 22, -6, 2, 5); R('#2f7a9a', 22, -7, 2, 1);
+        }
+        break;
+      case 'ketek':
+        if (layer === 'hull') {
+          hull('#3f9f58', '#f5b82e', '#2b7a40', '#2b6a3a', 52);
+          // the long-tail engine at the stern
+          R(INK, -30, -6, 8, 6); R('#5d6475', -29, -5, 6, 4); R('#aab3c4', -28, -5, 2, 1);
+          for (let i = 0; i < 12; i++) R(INK, -30 - i, i * 0.9 | 0, 1, 1);
+          if (Math.sin(t * 9) > 0) R('#cdd7e6', -44, 10, 2, 1);
+        }
+        break;
+      case 'pinisi':
+        if (layer === 'back') {
+          for (const [mx, mh] of [[-14, 30], [-2, 24]]) {
+            R(INK, mx, -mh, 2, mh);
+            R(INK, mx - 9, -mh + 3, 9, mh - 9); R('#f3ead7', mx - 8, -mh + 4, 7, mh - 11);
+            R('#e6d8bb', mx - 8, -mh + 10, 7, 1);
+          }
+          R('#ff6b3d', -14, -34, 6, 3); R(INK, -14, -34, 1, 4);
+        }
+        if (layer === 'hull') {
+          hull('#8a4f2b', '#c99a5b', '#f5b82e', '#6a3a1f', 54);
+          // curved bow and stern
+          R(INK, 26, -6, 3, 6); R('#8a4f2b', 27, -5, 1, 4); R(INK, -29, -5, 3, 5); R('#8a4f2b', -28, -4, 1, 3);
+        }
+        break;
+      case 'riset':
+        if (layer === 'back') {
+          R(INK, -27, -14, 16, 13); R('#f3ead7', -26, -13, 14, 11); R('#8fd3e8', -24, -11, 4, 3); R('#8fd3e8', -18, -11, 4, 3);
+          R(INK, -21, -22, 1, 8);
+          const sw = Math.round(Math.sin(t * 2) * 2);
+          R(INK, -24 + sw, -22, 7, 1); R('#aab3c4', -23 + sw, -23, 5, 1);
+          if (Math.sin(t * 4) > 0.3) R('#ff6b3d', -21, -24, 1, 1);
+        }
+        if (layer === 'hull') hull('#f3ead7', '#cdb995', '#2f7a9a', '#5d6475', 54);
+        break;
+      case 'pukat':
+        if (layer === 'back') {
+          R(INK, -26, -12, 13, 11); R('#e0473a', -25, -11, 11, 9); R('#8fd3e8', -23, -9, 7, 3);
+          // A-frame and a hanging net at the bow
+          for (let i = 0; i < 16; i++) { R(INK, 20 + (i / 3 | 0), -i, 1, 1); R(INK, 28 - (i / 3 | 0), -i, 1, 1); }
+          R(INK, 23, -16, 3, 1);
+          R(INK, 26, -15, 1, 7);
+          for (let y = 0; y < 6; y++) for (let x = 0; x < 5; x++) if ((x + y) % 2 === 0) R('#cdb995', 24 + x, -8 + y, 1, 1);
+        }
+        if (layer === 'hull') hull('#c0462f', '#e6d8bb', '#14121c', '#7a2a1c', 56);
+        break;
+      case 'selam':
+        if (layer === 'back') {
+          // periscope
+          R(INK, -16, -18, 2, 14); R(INK, -16, -19, 6, 3); R('#aab3c4', -12, -18, 2, 1);
+        }
+        if (layer === 'hull') {
+          R(INK, -27, -3, 54, 13); R(INK, -29, 0, 58, 7);
+          R('#f5b82e', -26, -2, 52, 11); R('#f5b82e', -28, 1, 56, 5); R('#ffe08a', -24, -2, 46, 2);
+          R('#c98a12', -26, 7, 52, 2);
+          for (const px of [-20, -8, 14]) { R(INK, px, 1, 5, 5); R('#8fd3e8', px + 1, 2, 3, 3); R('#f3ead7', px + 1, 2, 1, 1); }
+          R(INK, -31, 1, 3, 5); R('#5d6475', -33, 0, 2, 7);
+        }
+        break;
+      case 'hantu':
+        if (layer === 'back') {
+          R(INK, -10, -30, 2, 30);
+          // a torn sail that flickers
+          const a = 0.55 + Math.sin(t * 1.7) * 0.15;
+          c.globalAlpha = a;
+          R('#cfe9e6', -22, -27, 12, 20); c.globalAlpha = 1;
+          R('#2b2836', -16, -14, 3, 3); R('#2b2836', -20, -22, 2, 2);
+          R(INK, -27, -9, 2, 9); R('#7af0ff', -28, -12, 4, 3);
+        }
+        if (layer === 'hull') {
+          hull('#2b2836', '#4a4558', '#7af0ff', '#14121c', 54);
+          if (Math.sin(t * 3) > 0) R('#7af0ff', -20, 8, 1, 1);
+        }
+        break;
+      default:
+        if (layer === 'hull') hull('#8a4f2b', '#b8743f', '#ff6b3d', '#6a3a1f', 48);
+    }
+  }
+
   function recolor(x, w, h, v) {
     const im = x.getImageData(0, 0, w, h);
     const d = im.data;

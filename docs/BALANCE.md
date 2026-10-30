@@ -13,15 +13,40 @@ that tier reaches its zone on time (averaged over 3 seeds):
 |---|---|---|
 | First skill | < 1 min | 0:38 |
 | Reef 30 m | 0.7 min | 0.7 min |
-| Open Blue 90 m | (follows) | ~8 min |
-| Twilight 220 m | 18 min | 15.3 min |
-| Trench 480 m (new season unlocked) | 40 min | 37.6 min |
-| Weird Deep 1050 m | 85 min | 83 min |
+| Open Blue 90 m | (follows) | ~10 min |
+| Twilight 220 m | 18 min | 17.7 min |
+| Trench 480 m (new season unlocked) | 40 min | 42.4 min |
+| Weird Deep 1050 m | 85 min | 76.3 min |
 
 Refitted on 2026-10-30 after obstacles (rocks, urchins, mines, nets, currents, vents) and the
 2D hook were added, and again when 46 species from the 80+ Fishing Icons pack joined
 (79 in total): `TIER = [33, 800, 5.3e5, 2.1e8, 1.1e10, 5.5e11]`. Ads were removed at the same
 time; the sim never used them, so the pacing above is the whole game.
+
+Refitted again with achievements and the outfit and boat shop: the bot now buys the cheapest
+item it can with shells and wears it, so the perks are part of the pacing.
+`TIER = [33, 1300, 8.4e5, 1.9e8, 9.5e9, 4.8e11]`.
+
+## Shells (outfits and boats)
+
+Shells come from achievements (3 / 6 / 12 / 25 / 50 by tier), new species (1), mastery steps
+(2 at 250 and 5 at 1000 caught of a kind) and new seasons (5). In the sim (skill 0.6):
+
+| Item | Shells | Bought at |
+|---|---|---|
+| Beachcomber | 10 | 0:48 |
+| Outrigger | 20 | 3 min |
+| Diver | 30 | 6 min |
+| Ship Cook | 40 | 10 min |
+| Longtail | 40 | 17 min |
+| Lighthouse Keeper | 55 | 38 min |
+| Lucky Gnome | 70 | 53 min (season 2) |
+| Pinisi | 70 | 60 min |
+
+About 33 of 57 achievements fall in the first 75 minutes (mostly Common to Rare); the Epic and
+Mythic tiers need many hours, many seasons or a lot of luck (25 titans, every variant). Total
+price of all items is 1,615 shells against about 1,700 available to someone who earns
+everything else.
 
 Every cast pays: the first three casts have easy fish under the boat, and a fish you bump
 into on the way down bites (it becomes the first catch).

@@ -10,7 +10,7 @@ const fs = require('fs');
 const path = require('path');
 const E = require('../js/engine.js');
 const Bot = require('../js/bot.js');
-const { ZONES, NODES, TIER, applyTier } = E.DATA;
+const { ZONES, NODES, TIER, applyTier, GEAR } = E.DATA;
 
 const TARGET = [0, 0.7, 7, 18, 40, 85]; // minute each zone is first reached, season 1
 const OVERHEAD = 4;                      // seconds per cast on the haul screen and casting
@@ -24,6 +24,18 @@ function shop(s) {
     // pearl nodes first, then the cheapest coin node
     opts.sort((a, b) => (a.n.cur === b.n.cur ? a.c - b.c : a.n.cur === 'pearl' ? -1 : 1));
     E.buy(s, opts[0].n.id);
+  }
+}
+
+// Achievements pay shells; the bot buys the cheapest outfit or boat it can and wears the newest
+// (later items are stronger). Returns the names it bought this time.
+function gearShop(s) {
+  const got = E.checkAch(s).map((a) => 'ach ' + a.name.en);
+  for (;;) {
+    const opts = GEAR.filter((g) => E.gearState(s, g.id) === 'buy').sort((a, b) => a.cost - b.cost);
+    if (!opts.length) return got;
+    E.buyGear(s, opts[0].id);
+    got.push('gear ' + opts[0].name.en);
   }
 }
 
@@ -44,6 +56,8 @@ function simulate({ skill = 0.6, hours = 6, seasons = 3, seed = 12345, log = nul
     s.coins += pond; s.seasonEarned += pond; s.lifetime += pond;
     E.settle(s, h);
     t += dt; casts++;
+    s.playTime += dt;
+    for (const m of gearShop(s)) if (m.startsWith('gear') || log === console.log && process.argv.includes('--ach')) say(`${m} (shells ${s.shells})`);
     recent.push(h.total); if (recent.length > 5) recent.shift();
     win.t += dt; win.n++; win.inc += h.total + pond;
     if (casts === 1) say(`first cast: ${h.items.length} fish, ${h.total} coins, ${run.t.toFixed(1)}s`);
@@ -72,7 +86,7 @@ function simulate({ skill = 0.6, hours = 6, seasons = 3, seed = 12345, log = nul
       shop(s);
     }
   }
-  say(`end: ${casts} casts, pearls ${s.pearls}, species ${Object.keys(s.caught).length}/${E.DATA.SPECIES.length}, variants ${Object.keys(s.variants).length}`);
+  say(`end: ${casts} casts, shells ${s.shells} (ever ${s.shellsEver}), achievements ${Object.keys(s.ach).length}/${E.DATA.ACH.length}, pearls ${s.pearls}, species ${Object.keys(s.caught).length}/${E.DATA.SPECIES.length}, variants ${Object.keys(s.variants).length}`);
   return { entry, save: s, t };
 }
 

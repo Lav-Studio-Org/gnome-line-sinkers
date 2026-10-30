@@ -8,6 +8,10 @@ where goldfish have three eyes.
 
 ![Menu](docs/screenshots/menu.png)
 ![Obstacles](docs/screenshots/obstacles.png)
+![Trophies](docs/screenshots/trophies.png)
+![Shop](docs/screenshots/shop.png)
+
+<img src="docs/screenshots/share-card.png" alt="Share card" width="270">
 
 Plain HTML + JS, no build step, no dependencies, works offline.
 
@@ -38,6 +42,10 @@ The start menu has Continue / New game, **Save to file** (downloads a `.json` sa
 - Auto Angler skill that plays for you (the same bot the balance simulation uses).
 - Generative lo-fi music and synthesized sound effects; the music muffles and darkens as the
   hook goes deeper.
+- 57 achievements in five rarity tiers, a lifetime activity page, and a share card (image for
+  Instagram and WhatsApp, or the phone's share sheet).
+- Shop with 8 gnome outfits and 8 boats (sampan, jukung, pinisi, mini sub, ghost ship...),
+  bought with shells from achievements; the one you wear gives a small perk.
 - Indonesian and English (follows the device language, switch in Settings).
 
 ## Files
@@ -50,6 +58,7 @@ The start menu has Continue / New game, **Save to file** (downloads a `.json` sa
 | `js/bot.js` | steering bot (Auto Angler, tests, balance) |
 | `js/render.js` | canvas renderer |
 | `js/ui.js`, `js/main.js` | interface and game flow |
+| `js/trophies.js` | achievements, activity, share card, outfit and boat shop |
 | `js/audio.js` | music, ambience and SFX (Web Audio) |
 | `img/atlas.png`, `js/atlas.js` | sprite sheet, built by `tools/build_atlas.py` from `Assets/` |
 | `docs/DESIGN.md` | research and design decisions |

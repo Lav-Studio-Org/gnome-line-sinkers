@@ -4,7 +4,8 @@
   'use strict';
   const D = typeof module !== 'undefined' ? require('./data.js') : root.KL.DATA;
   const ATLAS = typeof module !== 'undefined' ? require('./atlas.js') : root.KL.ATLAS;
-  const { ZONES, SPECIES, MUTATIONS, NODES, MASTERY } = D;
+  const { ZONES, SPECIES, MUTATIONS, NODES, MASTERY, ACH, SHELL_PAY, GEAR } = D;
+  const GEAR_BY = Object.fromEntries(GEAR.map((g) => [g.id, g]));
   const NODE = Object.fromEntries(NODES.map((n) => [n.id, n]));
   const SP = Object.fromEntries(SPECIES.map((s, i) => [s.id, i]));
 
@@ -35,6 +36,15 @@
       nodes: { root: 1 }, caught: {}, variants: {}, best: 0, bestEver: 0, casts: 0, pearlDepth: 0,
       zone: 0, lastSeen: 0, playTime: 0, auto: false, seed: (Math.random() * 1e9) | 0,
       settings: { sound: true, music: true, lang: null, haptics: true },
+      shells: 0, shellsEver: 0, ach: {}, rec: newRec(),
+      gear: { owned: { classic: 1, sampan: 1 }, skin: 'classic', boat: 'sampan' },
+    };
+  }
+  // lifetime activity record (never reset by a new season); feeds achievements and the share card
+  function newRec() {
+    return {
+      fish: 0, junk: 0, mut: [0, 0, 0, 0], bestHaul: 0, bestHaulFish: 0, bestFish: null, full: 0,
+      boom: 0, sting: 0, lost: 0, guard: 0, moon: 0, metres: 0, castTime: 0, days: 0, lastDay: '', first: 0,
     };
   }
   function migrate(s) {
@@ -43,19 +53,35 @@
     const out = Object.assign(base, s || {});
     out.settings = Object.assign(defaults, (s && s.settings) || {});
     out.nodes = Object.assign({ root: 1 }, out.nodes);
+    out.rec = Object.assign(newRec(), (s && s.rec) || {});
+    const g = (s && s.gear) || {};
+    out.gear = { owned: Object.assign({ classic: 1, sampan: 1 }, g.owned), skin: g.skin || 'classic', boat: g.boat || 'sampan' };
+    if (!out.gear.owned[out.gear.skin]) out.gear.skin = 'classic';
+    if (!out.gear.owned[out.gear.boat]) out.gear.boat = 'sampan';
+    out.ach = out.ach || {};
     return out;
   }
 
   const lv = (s, id) => s.nodes[id] || 0;
-  // sum of node effect `fx` over owned levels
-  function sumFx(s, fx) {
+  // perk `fx` of the equipped outfit and boat
+  function gearFx(s, fx) {
+    const g = s.gear;
+    if (!g) return 0;
     let t = 0;
+    const a = GEAR_BY[g.skin], b = GEAR_BY[g.boat];
+    if (a && a.fx[fx]) t += a.fx[fx];
+    if (b && b.fx[fx]) t += b.fx[fx];
+    return t;
+  }
+  // sum of node effect `fx` over owned levels, plus the equipped gear
+  function sumFx(s, fx) {
+    let t = gearFx(s, fx);
     for (const n of NODES) if (n.fx === fx) t += lv(s, n.id) * n.v;
     return t;
   }
   // product of (1 + v)^level over owned nodes with effect `fx`
   function prodFx(s, fx) {
-    let t = 1;
+    let t = 1 + gearFx(s, fx);
     for (const n of NODES) if (n.fx === fx) t *= Math.pow(1 + n.v, lv(s, n.id));
     return t;
   }
@@ -79,27 +105,34 @@
       full: sumFx(s, 'full'),
       bulk: sumFx(s, 'bulk'),
       junk: 1 + sumFx(s, 'junk'),
-      sonar: lv(s, 'sonar') > 0,
+      sonar: lv(s, 'sonar') > 0 || gearFx(s, 'sonar') > 0,
       mut: (1 + sumFx(s, 'mut')) * prodFx(s, 'mutx'),
       mutVal: 1 + sumFx(s, 'mutval'),
       rare: 1 + sumFx(s, 'rare'),
-      moonEvery: lv(s, 'moon') ? 9 - lv(s, 'moon') : 0,
+      moonEvery: moonEvery(s),
       auto: autoLv > 0,
       autoSkill: autoLv ? Math.min(0.97, [0, 0.55, 0.72, 0.86, 0.95][autoLv] + (lv(s, 'p_auto') ? 0.05 : 0)) : 0,
       pond: lv(s, 'pond1') > 0,
       pondMult: (1 + sumFx(s, 'pondmul')) * prodFx(s, 'pondx'),
       offlineH: 3 + sumFx(s, 'offline'),
+      deep: gearFx(s, 'deep'),
     };
     st.valueMult = valueMult(s);
     return st;
   }
 
+  // the ghost ship brings full moons: every 6 casts, or 2 casts sooner with the Full Moon skill
+  function moonEvery(s) {
+    const m = lv(s, 'moon') ? 9 - lv(s, 'moon') : 0;
+    if (!gearFx(s, 'moon')) return m;
+    return m ? Math.max(3, m - 2) : 6;
+  }
   function collectionBonus(s) { return 1 + 0.01 * Object.keys(s.variants).length; }
   // every pearl ever earned counts, so spending pearls on pearl skills never lowers the bonus
   function pearlBonus(s) { return 1 + s.pearlsEver * (0.1 + sumFx(s, 'pearlval')); }
   function valueMult(s) {
     return (1 + sumFx(s, 'value')) * prodFx(s, 'valx') *
-      collectionBonus(s) * pearlBonus(s);
+      collectionBonus(s) * pearlBonus(s) * (1 + gearFx(s, 'gvalue'));
   }
   function mastery(s, spId) {
     const c = s.caught[spId] || 0;
@@ -291,7 +324,7 @@
     return {
       st, r, seed, width, moon, fish, obs: makeObstacles(seed, width, end, s.casts < 3), events: [], t: 0,
       phase: 'down', x: x0, y: 0, vx: 0, vy: 0, maxY: 0, guard: st.guard,
-      caught: [], lost: 0, slowLeft: st.slow * 0.7, slowT: 0, timeScale: 1, zone: 0, inNet: null, inCur: null,
+      caught: [], lost: 0, cnt: { boom: 0, sting: 0, guard: 0 }, slowLeft: st.slow * 0.7, slowT: 0, timeScale: 1, zone: 0, inNet: null, inCur: null,
     };
   }
 
@@ -376,16 +409,19 @@
       if (run.guard > 0 && run.phase === 'down') {
         run.guard--;
         if (o.k === 'mine') o.gone = true;
+        run.cnt.guard++;
         run.events.push({ t: 'guard', o });
         continue;
       }
       if (o.k === 'urchin') {
         if (run.phase !== 'down') continue;
+        run.cnt.sting++;
         run.events.push({ t: 'sting', o });
         turn(run, 'sting');
         return true;
       }
       o.gone = true;
+      run.cnt.boom++;
       run.events.push({ t: 'boom', o });
       for (const f of run.fish) {
         if (f.st === 0 && Math.abs(f.y - o.y) < 9 && Math.abs(f.x - o.x) < 12) { f.st = 2; f.scare = 2; f.vx = (f.x < o.x ? -1 : 1) * Math.abs(f.vx); }
@@ -432,6 +468,7 @@
       if (Math.abs(dy) < f.hh + HIT_R && Math.abs(f.x - run.x) < f.hw + HIT_R) {
         if (run.guard > 0) {
           run.guard--;
+          run.cnt.guard++;
           f.st = 2; f.scare = 1.2; f.vx = (f.x < run.x ? -1 : 1) * Math.abs(f.vx);
           run.events.push({ t: 'guard', f });
         } else {
@@ -494,6 +531,7 @@
     let v = sp.value * (sp.junk ? st.junk : 1) * mastery(s, sp.id);
     // the weird deep has no floor: its fish keep getting richer the deeper they live
     if (sp.shadow) v *= Math.pow(1.25, Math.max(0, f.y - DEEP_TOP) / 500);
+    if (st.deep && f.y >= PRESTIGE_DEPTH) v *= 1 + st.deep;
     if (f.mut >= 0) v *= MUTATIONS[f.mut].mult * st.mutVal;
     return v * st.valueMult;
   }
@@ -512,27 +550,50 @@
     const fullB = run.caught.length >= st.cap ? st.full : 0;
     const bulkB = st.bulk * items.length;
     const total = Math.floor(base * (1 + fullB + bulkB));
-    return { items, base, fullB, bulkB, total, depth: Math.floor(run.maxY), moon: run.moon, cat: !!cat };
+    return {
+      items, base, fullB, bulkB, total, depth: Math.floor(run.maxY), moon: run.moon, cat: !!cat,
+      full: run.caught.length >= st.cap, cnt: Object.assign({ lost: run.lost }, run.cnt), time: run.t,
+    };
   }
 
-  // Apply a haul to the save. mult = 2 for the rewarded-ad double.
+  // Apply a haul to the save. Also keeps the activity record and pays shells: 1 for every new
+  // species, 2 and 5 for the 250 and 1000 mastery steps of a kind.
+  const MASTERY_SHELLS = [0, 0, 2, 5];
   function settle(s, h, mult) {
     const m = mult || 1;
     const gained = h.total * m;
     s.coins += gained; s.seasonEarned += gained; s.lifetime += gained;
     s.casts++;
+    const rec = s.rec;
     const fresh = [];
+    let fishN = 0, shells = 0, top = null;
     for (const it of h.items) {
       const sp = SPECIES[it.sp];
-      if (!s.caught[sp.id]) fresh.push(sp.id);
-      s.caught[sp.id] = (s.caught[sp.id] || 0) + (it.twin ? 2 : 1);
+      const n = it.twin ? 2 : 1;
+      if (!s.caught[sp.id]) { fresh.push(sp.id); shells++; }
+      const before = s.caught[sp.id] || 0;
+      s.caught[sp.id] = before + n;
+      MASTERY.forEach((t, i) => { if (before < t && before + n >= t) shells += MASTERY_SHELLS[i]; });
+      if (sp.junk) rec.junk += n; else { rec.fish += n; fishN += n; }
+      if (it.mut >= 0) rec.mut[it.mut] += n;
+      if (!sp.junk && (!top || it.value > top.value)) top = it;
       const key = sp.id + ':' + (it.mut >= 0 ? MUTATIONS[it.mut].id : 'n');
       s.variants[key] = 1;
     }
     if (h.depth > s.best) s.best = h.depth;
     if (h.depth > s.bestEver) s.bestEver = h.depth;
     s.zone = Math.max(s.zone, zoneAt(s.bestEver));
-    return { gained, fresh };
+    if (gained > rec.bestHaul) rec.bestHaul = gained;
+    if (fishN > rec.bestHaulFish) rec.bestHaulFish = fishN;
+    // the proudest single fish ever: most valuable at the time it was caught
+    if (top && (!rec.bestFish || top.value > rec.bestFish.value)) rec.bestFish = { sp: SPECIES[top.sp].id, mut: top.mut, value: top.value };
+    if (h.full && h.items.length) rec.full++;
+    if (h.moon) rec.moon++;
+    if (h.cnt) { rec.boom += h.cnt.boom; rec.sting += h.cnt.sting; rec.lost += h.cnt.lost; rec.guard += h.cnt.guard; }
+    rec.metres += h.depth || 0;
+    rec.castTime += h.time || 0;
+    addShells(s, shells);
+    return { gained, fresh, shells };
   }
 
   // ---------- idle pen ----------
@@ -566,6 +627,7 @@
     const g = prestigeGain(s);
     if (g <= 0) return 0;
     s.pearls += g; s.pearlsEver += g; s.seasons++;
+    addShells(s, SEASON_SHELLS);
     s.pearlDepth = Math.max(s.pearlDepth || 0, depthPearls(s.best));
     s.coins = 0; s.seasonEarned = 0; s.best = 0;
     const keep = { root: 1 };
@@ -574,10 +636,93 @@
     return g;
   }
 
+  // ---------- shells, achievements, gear ----------
+  const SEASON_SHELLS = 5;
+  function addShells(s, n) { if (n > 0) { s.shells += n; s.shellsEver += n; } }
+  const BUYABLE_GEAR = GEAR.filter((g) => g.cost > 0).length;
+  const ALL_VARIANTS = SPECIES.reduce((t, sp) => t + (sp.junk ? 1 : 1 + MUTATIONS.length), 0);
+  function achValue(s, k) {
+    const r = s.rec;
+    switch (k) {
+      case 'fish': return r.fish;
+      case 'junk': return r.junk;
+      case 'casts': return s.casts;
+      case 'depth': return s.bestEver;
+      case 'coins': return s.lifetime;
+      case 'species': return Object.keys(s.caught).length;
+      case 'variants': return Object.keys(s.variants).length;
+      case 'gold': return r.mut[1];
+      case 'prism': return r.mut[2];
+      case 'titan': return r.mut[3];
+      case 'haulFish': return r.bestHaulFish;
+      case 'full': return r.full;
+      case 'moon': return r.moon;
+      case 'boom': return r.boom;
+      case 'sting': return r.sting;
+      case 'seasons': return s.seasons;
+      case 'pearls': return s.pearlsEver;
+      case 'master': { let n = 0; for (const id in s.caught) if (s.caught[id] >= MASTERY[MASTERY.length - 1]) n++; return n; }
+      case 'time': return s.playTime;
+      case 'days': return r.days;
+      case 'gear': return Object.keys(s.gear.owned).filter((id) => GEAR_BY[id] && GEAR_BY[id].cost > 0).length;
+      default: return 0;
+    }
+  }
+  // goal 0 means "all of them"
+  function achGoal(a) {
+    if (a.goal) return a.goal;
+    if (a.k === 'species') return SPECIES.length;
+    if (a.k === 'gear') return BUYABLE_GEAR;
+    if (a.k === 'variants') return ALL_VARIANTS;
+    return 1;
+  }
+  function achProgress(s, a) { return Math.min(1, achValue(s, a.k) / achGoal(a)); }
+  // Unlocks every achievement whose goal is met; returns the new ones (shells already paid).
+  function checkAch(s) {
+    const out = [];
+    for (const a of ACH) {
+      if (s.ach[a.id] || achValue(s, a.k) < achGoal(a)) continue;
+      s.ach[a.id] = Date.now();
+      addShells(s, SHELL_PAY[a.tier]);
+      out.push(a);
+    }
+    return out;
+  }
+  // counts distinct days played; day is a local 'YYYY-MM-DD' string from the caller
+  function markDay(s, day, now) {
+    const r = s.rec;
+    if (!r.first) r.first = now || 0;
+    if (r.lastDay === day) return false;
+    r.lastDay = day; r.days++;
+    return true;
+  }
+  // 'owned' | 'buy' (affordable) | 'open' (not enough shells) | 'locked' (zone or achievement missing)
+  function gearState(s, id) {
+    const g = GEAR_BY[id];
+    if (s.gear.owned[id]) return 'owned';
+    if (s.zone < g.zone || (g.ach && !s.ach[g.ach])) return 'locked';
+    return s.shells >= g.cost ? 'buy' : 'open';
+  }
+  function buyGear(s, id) {
+    if (gearState(s, id) !== 'buy') return false;
+    const g = GEAR_BY[id];
+    s.shells -= g.cost;
+    s.gear.owned[id] = 1;
+    s.gear[g.kind] = id;
+    return true;
+  }
+  function equip(s, id) {
+    const g = GEAR_BY[id];
+    if (!g || !s.gear.owned[id]) return false;
+    s.gear[g.kind] = id;
+    return true;
+  }
+
   const E = {
     DATA: D, NODE, SP, PXM, PRESTIGE_DEPTH, rng, newSave, migrate, lv, stats, valueMult, collectionBonus, mastery,
     zoneAt, nodeCost, nodeState, canBuy, buy, affordableCount, newRun, stepRun, haul, settle, fishValue,
     pondRate, offline, prestigeGain, prestige, spriteSize, obsIn,
+    GEAR_BY, gearFx, achValue, achGoal, achProgress, checkAch, markDay, gearState, buyGear, equip, addShells, newRec,
   };
   if (typeof module !== 'undefined') module.exports = E; else root.KL.Engine = E;
 })(this);

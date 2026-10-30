@@ -164,4 +164,88 @@ test('migrate keeps old saves and fills new fields', () => {
   assert.strictEqual(s.settings.music, true);
 });
 
+test('migrate fills activity, shells and gear for saves from before achievements', () => {
+  const s = E.migrate({ coins: 5, rec: { fish: 7 }, gear: { owned: { jukung: 1 }, boat: 'jukung', skin: 'nope' } });
+  assert.strictEqual(s.rec.fish, 7);
+  assert.deepStrictEqual(s.rec.mut, [0, 0, 0, 0]);
+  assert.strictEqual(s.shells, 0);
+  assert.strictEqual(s.gear.boat, 'jukung');
+  assert.strictEqual(s.gear.skin, 'classic', 'an outfit you do not own falls back to the classic');
+  assert(s.gear.owned.classic && s.gear.owned.sampan);
+});
+
+test('achievements and gear data are consistent', () => {
+  const { ACH, GEAR, SHELL_PAY } = E.DATA;
+  const ids = new Set();
+  for (const a of ACH) {
+    assert(!ids.has(a.id), 'duplicate achievement ' + a.id); ids.add(a.id);
+    assert(a.tier >= 0 && a.tier < SHELL_PAY.length, 'bad tier ' + a.id);
+    assert(E.achGoal(a) > 0, 'no goal ' + a.id);
+    assert(a.name.id && a.name.en, 'missing name ' + a.id);
+  }
+  for (let t = 0; t < 5; t++) assert(ACH.some((a) => a.tier === t), 'empty tier ' + t);
+  const keys = new Set(NODES.map((nd) => nd.fx).concat(['gvalue', 'deep', 'moon', 'sonar']));
+  for (const g of GEAR) {
+    for (const k in g.fx) assert(keys.has(k), g.id + ' has unknown perk ' + k);
+    if (g.ach) assert(ACH.find((a) => a.id === g.ach), g.id + ' needs missing achievement');
+    if (g.kind === 'skin') assert(g.pal && g.pal.length === 4, g.id + ' needs a palette');
+  }
+  // every outfit and boat can be bought by someone who earns everything else
+  const s = E.newSave();
+  const most = ACH.filter((a) => a.k !== 'gear').reduce((t, a) => t + SHELL_PAY[a.tier], 0);
+  const maxShells = most + SPECIES.length * 8 + 25 * 5;
+  assert(GEAR.reduce((t, g) => t + g.cost, 0) <= maxShells, 'gear costs more than the game pays');
+  assert(s.gear.owned.classic);
+});
+
+test('settle keeps the activity record and pays shells for new species', () => {
+  const s = E.newSave();
+  const run = Bot.playCast(s, 0.7, { width: 100 });
+  const h = E.haul(s, run);
+  const r = E.settle(s, h);
+  const fish = h.items.filter((i) => !SPECIES[i.sp].junk).reduce((t, i) => t + (i.twin ? 2 : 1), 0);
+  assert.strictEqual(s.rec.fish, fish);
+  assert.strictEqual(r.shells, r.fresh.length);
+  assert.strictEqual(s.shells, r.fresh.length);
+  assert(s.rec.bestFish, 'remembers the best fish');
+  assert.strictEqual(s.rec.metres, h.depth);
+});
+
+test('achievements unlock once and pay by rarity', () => {
+  const s = E.newSave();
+  s.rec.fish = 1;
+  const got = E.checkAch(s);
+  assert(got.find((a) => a.id === 'fish1'));
+  assert.strictEqual(s.shells, E.DATA.SHELL_PAY[0] * got.length);
+  assert.strictEqual(E.checkAch(s).length, 0, 'no second payout');
+  assert(E.markDay(s, '2026-10-30'));
+  assert(!E.markDay(s, '2026-10-30'), 'same day counts once');
+  assert(E.markDay(s, '2026-10-31'));
+  assert.strictEqual(s.rec.days, 2);
+});
+
+test('gear: zone and achievement gates, buying equips, perks change stats', () => {
+  const s = E.newSave();
+  assert.strictEqual(E.gearState(s, 'diver'), 'locked', 'diver needs the reef');
+  s.shells = 1000;
+  assert.strictEqual(E.gearState(s, 'jukung'), 'buy');
+  const cap = E.stats(s).cap;
+  assert(E.buyGear(s, 'jukung'));
+  assert.strictEqual(s.gear.boat, 'jukung');
+  assert.strictEqual(E.stats(s).cap, cap + 1);
+  assert(!E.buyGear(s, 'jukung'), 'owned already');
+  s.zone = 5;
+  assert.strictEqual(E.gearState(s, 'golden'), 'locked', 'golden gnome needs its achievement');
+  const v = E.stats(s).valueMult;
+  assert(E.buyGear(s, 'chef'));
+  assert(Math.abs(E.stats(s).valueMult / v - 1.1) < 1e-9);
+  assert(E.equip(s, 'classic'));
+  assert(Math.abs(E.stats(s).valueMult - v) < 1e-9);
+  assert(!E.equip(s, 'abyss'), 'cannot wear what you do not own');
+  E.buyGear(s, 'hantu');
+  s.ach.d2000 = 1;
+  assert(E.buyGear(s, 'hantu'));
+  assert.strictEqual(E.stats(s).moonEvery, 6);
+});
+
 console.log(`\n${n} tests passed`);
