@@ -33,8 +33,9 @@ cast. The sim plays it the same way (`E.carryOver`).
 `TIER = [43, 620, 6.3e5, 1.4e8, 7e9, 3.5e11]`; zones at 0.6 / 10.5 / 17.9 / 39 / 75 min.
 
 Refitted when the line became a length (side moves and current drift pay it out, see
-DESIGN.md section 13). With side moves at 3 m of line per metre:
-`TIER = [17, 630, 7.8e5, 1.7e8, 8.5e9, 4.3e11]`; zones at 0.8 / 8.7 / 17.7 / 38 / 79 min.
+DESIGN.md section 13). With side moves at 1.8 m of line per metre (3 m felt too harsh when
+moving fast): `TIER = [43, 440, 7.9e5, 1.5e8, 7.5e9, 3.8e11]`; zones at
+0.6 / 10.4 / 16.9 / 43 / 89 min.
 
 ## Shells (outfits and boats)
 

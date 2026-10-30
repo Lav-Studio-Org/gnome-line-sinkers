@@ -199,10 +199,11 @@ cleaner lines.
 - **Readable cost.** A rope pill next to the catch counter shows the line left while going down
   and turns red at 20%. The orange marker on the depth gauge moves up as you spend line: it is
   the deepest point still in reach going straight down.
-- **Fair numbers.** Dragging the line sideways through the water costs 3 m of line per metre
-  (a first pass at 1:1 was too cheap: swerving back and forth barely showed on the meter);
-  Smooth Steering (and the Diver outfit, Longtail boat) cut that by 10% per 20% steering, down
-  to 1.5 m. Wiggling the stick hard left and right now ends a 150 m line at about 55 m deep. Going up inside the
+- **Fair numbers.** Dragging the line sideways through the water costs 1.8 m of line per metre
+  (1:1 was too cheap, swerving barely showed on the meter; 3:1 emptied the spool too fast when
+  moving quickly). Smooth Steering (and the Diver outfit, Longtail boat) cut that by 10% per 20%
+  steering, down to 0.9 m. Wiggling the stick hard left and right ends a 150 m line at about
+  85 m deep. Going up inside the
   down phase (pulling up, a vent's lift) does not refund line.
 - **Free Fall** still drops straight down, so its share of the line is never wasted.
 - **Bot.** It now weighs side moves by how much line is left (cheap early, expensive near the
