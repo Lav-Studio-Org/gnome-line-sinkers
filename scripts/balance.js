@@ -46,10 +46,12 @@ function simulate({ skill = 0.6, hours = 6, seasons = 3, seed = 12345, log = nul
   let t = 0, season = 0, seasonStart = 0, casts = 0, lastReport = 0, win = { t: 0, n: 0, inc: 0 };
   const recent = [];
   const entry = [[]];
+  let sea = null; // the sea carries over between casts, like in the game
   const say = (m) => log && log(`${mm(t).padStart(7)}  ${m}`);
   while (t < hours * 3600 && season < seasons) {
     const st = E.stats(s);
-    const run = Bot.playCast(s, st.auto ? Math.max(skill, st.autoSkill) : skill, { width: 100 });
+    const run = Bot.playCast(s, st.auto ? Math.max(skill, st.autoSkill) : skill, { width: 100, keep: sea });
+    sea = E.carryOver(run);
     const h = E.haul(s, run);
     const dt = run.t + OVERHEAD;
     const pond = E.pondRate(s) * dt;

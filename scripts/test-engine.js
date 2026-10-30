@@ -248,6 +248,18 @@ test('gear: zone and achievement gates, buying equips, perks change stats', () =
   assert.strictEqual(E.stats(s).moonEvery, 6);
 });
 
+test('the sea near the boat carries over: only caught fish are replaced', () => {
+  const s = E.newSave(); s.casts = 5;
+  const run = Bot.playCast(s, 0.8, { seed: 9, width: 100 });
+  const left = E.carryOver(run);
+  const next = E.newRun(s, { width: 100, keep: left });
+  const near = run.fish.filter((f) => f.y < left.end);
+  const stay = near.filter((f) => f.st !== 1), gone = near.length - stay.length;
+  assert(stay.length > 0 && gone > 0, 'test cast should catch some and leave some');
+  for (const f of stay) assert(next.fish.some((g) => g.sp === f.sp && g.y === f.y && g.x === f.x && g.st === 0), 'fish moved or vanished');
+  assert.strictEqual(next.fish.filter((f) => f.y < left.end).length, near.length, 'same number of fish near the boat');
+});
+
 test('save codec round-trips and rejects edited or plain saves', () => {
   const C = require('../js/savecodec.js');
   const s = E.newSave(); s.coins = 12345.5; s.settings.lang = 'id'; s.name = 'Kail \u00e9\u4e2d';

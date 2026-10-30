@@ -27,6 +27,11 @@ Refitted again with achievements and the outfit and boat shop: the bot now buys 
 item it can with shells and wears it, so the perks are part of the pacing.
 `TIER = [33, 1300, 8.4e5, 1.9e8, 9.5e9, 4.8e11]`.
 
+Refitted when the sea started carrying over between casts: uncaught fish in the top 80 m (what
+the dock shows) stay where they are and only caught ones are replaced, deeper water is new each
+cast. The sim plays it the same way (`E.carryOver`).
+`TIER = [43, 620, 6.3e5, 1.4e8, 7e9, 3.5e11]`; zones at 0.6 / 10.5 / 17.9 / 39 / 75 min.
+
 ## Shells (outfits and boats)
 
 Shells come from achievements (3 / 6 / 12 / 25 / 50 by tier), new species (1), mastery steps

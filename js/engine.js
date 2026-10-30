@@ -10,6 +10,7 @@
   const SP = Object.fromEntries(SPECIES.map((s, i) => [s.id, i]));
 
   const PXM = 4;              // art pixels per metre
+  const KEEP_TO = 80;         // metres of sea that stay put between casts (see carryOver)
   const BASE_LINE = 20;
   const BASE_CAP = 2;
   const HIT_R = 0.45;         // hook radius on the way down (m)
@@ -305,6 +306,26 @@
     const fish = [];
     let y = 5;
     const end = st.line + 8;
+    // keep: the sea left by the last cast (see carryOver). Uncaught fish stay where they swam,
+    // each caught one is replaced by a new fish at its depth, and only new depth gets new fish.
+    const keep = o.keep;
+    if (keep) {
+      for (const k of keep.fish) {
+        if (k.y >= end) continue;
+        const f = Object.assign({}, k, { st: 0, scare: 0 });
+        // a moon cast still lifts the odds for fish that are already there
+        if (moon && f.mut < 0 && !SPECIES[f.sp].junk) {
+          f.mut = rollMutation(r, mutMult);
+          if (f.mut >= 0) {
+            const [w, h] = spriteSize(SPECIES[f.sp].sprite);
+            f.scale = MUTATIONS[f.mut].scale; f.hw = (w * f.scale) / PXM / 2 * 0.8; f.hh = (h * f.scale) / PXM / 2 * 0.75;
+          }
+        }
+        fish.push(f);
+      }
+      for (const gy of keep.gaps) if (gy < end) fish.push(makeFish(r, st, gy, width, mutMult));
+      y = Math.max(y, keep.end);
+    }
     while (y < end) {
       const z = zoneAt(y);
       const dens = (y < 45 ? 0.42 : 0.24 + 0.05 * z) * (width / 100);
@@ -312,20 +333,34 @@
       if (y < end) fish.push(makeFish(r, st, y, width, mutMult));
     }
     // the first casts always have a few easy fish right under the boat, so nobody starts empty-handed
-    if (s.casts < 3) {
+    if (s.casts < 3 && !keep) {
       for (const d of [9, 13, 17]) {
         const f = makeFish(r, st, d, width, 0);
         f.sp = SP.goldfish; f.mut = -1; f.scale = 1; f.x = width * 0.5 + (r() < 0.5 ? -1 : 1) * (5 + r() * 8); f.vx *= 0.3;
         fish.push(f);
       }
-      fish.sort((a, b) => a.y - b.y);
     }
+    fish.sort((a, b) => a.y - b.y);
     const x0 = o.x != null ? Math.max(1, Math.min(width - 1, o.x)) : width * 0.5;
     return {
-      st, r, seed, width, moon, fish, obs: makeObstacles(seed, width, end, s.casts < 3), events: [], t: 0,
+      st, r, seed, width, moon, fish, end, keep, obs: makeObstacles(seed, width, end, s.casts < 3), events: [], t: 0,
       phase: 'down', x: x0, y: 0, vx: 0, vy: 0, maxY: 0, guard: st.guard,
       caught: [], lost: 0, cnt: { boom: 0, sting: 0, guard: 0 }, slowLeft: st.slow * 0.7, slowT: 0, timeScale: 1, zone: 0, inNet: null, inCur: null,
     };
+  }
+
+  // What a finished cast leaves in the sea, to pass as newRun(s, { keep }). Only the water you
+  // can see from the dock (down to `to` metres) is kept; deeper down the fish move on, so the
+  // sea keeps mixing and upgrades that change the catch still show up there.
+  function carryOver(run, to) {
+    if (!run) return null;
+    const end = Math.min(run.end, to || KEEP_TO);
+    const fish = [], gaps = [];
+    for (const f of run.fish) {
+      if (f.y >= end) continue;
+      if (f.st === 1) gaps.push(f.y); else fish.push(f);
+    }
+    return { fish, gaps, end };
   }
 
   // Advance a cast by dt seconds. target: {x, y} in metres for the hook to chase (it follows
@@ -720,7 +755,7 @@
 
   const E = {
     DATA: D, NODE, SP, PXM, PRESTIGE_DEPTH, rng, newSave, migrate, lv, stats, valueMult, collectionBonus, mastery,
-    zoneAt, nodeCost, nodeState, canBuy, buy, affordableCount, newRun, stepRun, haul, settle, fishValue,
+    zoneAt, nodeCost, nodeState, canBuy, buy, affordableCount, newRun, carryOver, stepRun, haul, settle, fishValue,
     pondRate, offline, prestigeGain, prestige, spriteSize, obsIn,
     GEAR_BY, gearFx, achValue, achGoal, achProgress, checkAch, markDay, gearState, buyGear, equip, addShells, newRec,
   };

@@ -179,7 +179,7 @@
 
   // Cost of a node = TIER[t] * c * g^level. TIER is roughly "15 casts of income" at the start of
   // each zone; scripts/balance.js --tune fits it to the pacing targets in docs/BALANCE.md.
-  const TIER = [33, 1300, 840000, 190000000, 9500000000, 480000000000];
+  const TIER = [43, 620, 630000, 140000000, 7000000000, 350000000000];
   NODES.forEach((n) => { if (n.t != null) n.k = n.c; });
   function applyTier(T) {
     T.forEach((v, i) => { TIER[i] = v; });

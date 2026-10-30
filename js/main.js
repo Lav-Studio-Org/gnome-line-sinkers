@@ -48,10 +48,11 @@
       this.persist();
     },
     // The fish you see while docked are the fish of your next cast: the preview run *is* the next run.
-    // keepSeed rebuilds the same sea after a purchase changed the stats.
-    newPreview(keepSeed) {
-      const seed = keepSeed && this.preview ? this.preview.seed : undefined;
-      this.preview = E.newRun(this.save, { width: R.worldW, seed });
+    // keepSeed rebuilds the same sea after a purchase changed the stats; keep carries the fish
+    // a finished cast left behind (E.carryOver), so collecting does not refill the whole sea.
+    newPreview(keepSeed, keep) {
+      const p = keepSeed ? this.preview : null;
+      this.preview = E.newRun(this.save, { width: R.worldW, seed: p ? p.seed : undefined, keep: p ? p.keep : keep });
     },
     // the haul list shows value per row before the crate/bulk bonus; keep rows consistent with the total
     statsHaulMult(h) { return 1 + h.fullB + h.bulkB; },
@@ -180,9 +181,10 @@
       }, 300 + i * 450));
       this.achCheck(300 + fresh.length * 450);
       this.mode = 'dock';
+      const left = E.carryOver(this.run);
       this.run = null;
       this.refresh();
-      this.newPreview();
+      this.newPreview(false, left);
       UI.setMode('dock');
       UI.hud();
       this.persist();
