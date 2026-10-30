@@ -5,4 +5,4 @@ compatibility_date = "2026-10-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "gnome-line-sinker"
-database_id = "REPLACE_WITH_D1_ID"
+database_id = "f6ce5475-90bc-4de2-833d-ef91c6019259"

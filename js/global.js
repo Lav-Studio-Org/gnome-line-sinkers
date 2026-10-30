@@ -6,7 +6,7 @@
   'use strict';
   const KL = root.KL;
   // set after deploying server/ (tests can override with window.KL_GLOBAL_URL)
-  const GLOBAL_URL = root.KL_GLOBAL_URL || '';
+  const GLOBAL_URL = root.KL_GLOBAL_URL || 'https://gnome-line-sinker-counter.assamim80.workers.dev';
   const EVERY = 180e3;  // ms between reports
   const FIRST = 20e3;   // first report this long after the game starts
 
