@@ -248,4 +248,19 @@ test('gear: zone and achievement gates, buying equips, perks change stats', () =
   assert.strictEqual(E.stats(s).moonEvery, 6);
 });
 
+test('save codec round-trips and rejects edited or plain saves', () => {
+  const C = require('../js/savecodec.js');
+  const s = E.newSave(); s.coins = 12345.5; s.settings.lang = 'id'; s.name = 'Kail \u00e9\u4e2d';
+  const enc = C.encode({ game: 'gnome-line-sinker', v: 2, save: s });
+  assert(C.isEncoded(enc) && !enc.includes('coins'), 'encoded text should not show the fields');
+  assert.deepStrictEqual(C.decode(enc).save, JSON.parse(JSON.stringify(s)));
+  assert.notStrictEqual(C.encode(s), C.encode(s), 'nonce should change the bytes');
+  for (const i of [5, 14, 25, enc.length - 3]) {
+    const ch = enc[i] === 'A' ? 'B' : 'A';
+    assert.strictEqual(C.decode(enc.slice(0, i) + ch + enc.slice(i + 1)), null, 'edit at ' + i + ' slipped through');
+  }
+  assert.strictEqual(C.decode(JSON.stringify(s)), null);
+  assert.strictEqual(C.decode('GLS1zzzz'), null);
+});
+
 console.log(`\n${n} tests passed`);

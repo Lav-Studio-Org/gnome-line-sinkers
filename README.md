@@ -32,8 +32,10 @@ for fonts and the sprite sheet.)
 Controls: tap the sea to cast. While the hook is underwater it chases your finger or cursor;
 let go and it keeps sinking straight. Arrow keys / WASD work too, Space casts and collects.
 
-The start menu has Continue / New game, **Save to file** (downloads a `.json` save) and
-**Load from file**. The same two buttons are in Settings.
+The start menu has Continue / New game, **Save to file** (downloads a `.sav` save) and
+**Load from file**. Saves, in the file and in the browser, are scrambled with a keyed checksum
+(`js/savecodec.js`), so an edited save is refused. Old plain browser saves still load once and are
+re-saved encoded; old `.json` save files are no longer accepted. The same two buttons are in Settings.
 
 ## What is in it
 

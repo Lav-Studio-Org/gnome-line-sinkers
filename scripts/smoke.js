@@ -9,6 +9,9 @@ const fs = require('fs');
 (async () => {
   const browser = await chromium.launch();
   const ctx = await browser.newContext({ viewport: { width: 844, height: 390 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true });
+  // keep the global counter offline: answer it locally
+  const fakeCounter = (c) => c.route('**/*.workers.dev/**', (r) => r.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: '{"players":3,"fish":120,"metres":900,"casts":40}' }));
+  await fakeCounter(ctx);
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push(String(e)));
@@ -112,9 +115,16 @@ const fs = require('fs');
   await page.waitForTimeout(300);
   await shot('9-menu-progress');
   const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#menuExport')]);
-  const file = (shots || '/tmp') + '/save.json';
+  const file = (shots || '/tmp') + '/save.sav';
   await dl.saveAs(file);
+  if (fs.readFileSync(file, 'utf8').includes('coins')) errors.push('save file is plain text');
   await page.evaluate(() => { window.__kail.g.save.casts = 999; });
+  // an edited file must be refused
+  const txt = fs.readFileSync(file, 'utf8'), bad = file.replace('.sav', '-edited.sav');
+  fs.writeFileSync(bad, txt.slice(0, 40) + (txt[40] === 'A' ? 'B' : 'A') + txt.slice(41));
+  await page.setInputFiles('#importFile', bad);
+  await page.waitForTimeout(300);
+  if (await page.evaluate(() => window.__kail.g.save.casts) !== 999) errors.push('an edited save file was loaded');
   await page.setInputFiles('#importFile', file);
   await page.waitForSelector('#modalBtns .grow');
   await page.click('#modalBtns .grow');
@@ -133,6 +143,7 @@ const fs = require('fs');
   console.log(JSON.stringify(await page.evaluate(() => ({ coins: Math.round(window.__kail.g.save.coins), casts: window.__kail.g.save.casts, mode: window.__kail.g.mode }))));
   // portrait phone: bottom bar, panning camera, a full cast
   const pctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true });
+  await fakeCounter(pctx);
   const pp = await pctx.newPage();
   pp.on('pageerror', (e) => errors.push('portrait: ' + e));
   await pp.goto(url);

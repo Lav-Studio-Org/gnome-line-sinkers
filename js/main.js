@@ -7,8 +7,18 @@
   const KEY = 'kail.save.v1'; // kept from the working title so existing progress survives the rename
   const t = (k, v) => KL.t(k, v);
 
+  const C = KL.SaveCodec;
+  const ENC = KEY + '.enc'; // set once the browser copy is encoded; plain JSON after that is an edit
+
   function load() {
-    try { const raw = localStorage.getItem(KEY); if (raw) return E.migrate(JSON.parse(raw)); } catch (e) { /* fresh start */ }
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (raw) {
+        if (C.isEncoded(raw)) { const s = C.decode(raw); if (s) return E.migrate(s); }
+        else if (!localStorage.getItem(ENC)) return E.migrate(JSON.parse(raw)); // save from before encoding
+        localStorage.setItem(KEY + '.bad', raw); // changed by hand: keep it aside, start fresh
+      }
+    } catch (e) { /* fresh start */ }
     return E.newSave();
   }
 
@@ -26,7 +36,7 @@
     },
     persist() {
       this.save.lastSeen = Date.now();
-      try { localStorage.setItem(KEY, JSON.stringify(this.save)); } catch (e) { /* storage full or blocked */ }
+      try { localStorage.setItem(KEY, C.encode(this.save)); localStorage.setItem(ENC, '1'); } catch (e) { /* storage full or blocked */ }
     },
     applySettings() {
       const st = this.save.settings;
@@ -215,10 +225,10 @@
       this.persist();
       const d = new Date();
       const stamp = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}-${String(d.getHours()).padStart(2, '0')}${String(d.getMinutes()).padStart(2, '0')}`;
-      const data = JSON.stringify({ game: 'gnome-line-sinker', v: 1, at: d.toISOString(), save: this.save });
+      const data = C.encode({ game: 'gnome-line-sinker', v: 2, at: d.toISOString(), save: this.save });
       const a = document.createElement('a');
-      a.href = URL.createObjectURL(new Blob([data], { type: 'application/json' }));
-      a.download = `gnome-line-sinker-${stamp}.json`;
+      a.href = URL.createObjectURL(new Blob([data], { type: 'application/octet-stream' }));
+      a.download = `gnome-line-sinker-${stamp}.sav`;
       document.body.appendChild(a);
       a.click();
       setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
@@ -227,8 +237,9 @@
     importFile(file) {
       const bad = () => { A.deny(); UI.toast(null, t('menuImport'), t('importBad')); };
       file.text().then((txt) => {
-        let raw;
-        try { const obj = JSON.parse(txt); raw = obj && obj.save ? obj.save : obj; } catch (e) { bad(); return; }
+        const obj = C.decode(txt);
+        if (!obj) { bad(); return; } // plain JSON or a file that was changed
+        const raw = obj.save;
         if (!raw || typeof raw !== 'object' || typeof raw.coins !== 'number' || !raw.nodes || typeof raw.nodes !== 'object') { bad(); return; }
         const apply = () => {
           this.save = E.migrate(raw);

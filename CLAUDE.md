@@ -14,7 +14,9 @@ ship to the Play Store as a web payload, so mobile first, portrait and landscape
   `docs/BALANCE.md`.
 - Audio: keep `unlock` / `recover` / `duck` in `js/audio.js`.
 - Save key `kail.save.v1` (kept so old progress survives the rename), namespace `KL`, test hook
-  `window.__kail` (`give`, `setNodes`, `cast(x)`). Save files: `{ game: 'gnome-line-sinker', v, at, save }`.
+  `window.__kail` (`give`, `setNodes`, `cast(x)`). Save files (`.sav`) and the browser copy go through
+  `KL.SaveCodec` (`js/savecodec.js`: scrambled + keyed checksum, edits are rejected); the file holds
+  `{ game: 'gnome-line-sinker', v, at, save }`.
 - The docked preview run is the next cast (`g.preview` becomes `g.run`), so idle fish = cast fish.
 - Credit both asset packs (Moranovo 80+ Fishing Icons, PixelGnome Fishing Pack sample) in the
   in-game credits and README.
