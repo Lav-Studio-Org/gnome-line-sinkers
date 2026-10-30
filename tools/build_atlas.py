@@ -42,12 +42,13 @@ MO_ICONS = {
   'mo_seahorse': (39, 'keep'), 'mo_cucumber': (41, 'keep'), 'mo_bcucumber': (42, 'keep'), 'mo_octopus': (43, 'keep'), 'mo_batfish': (44, 'flip'),
   'mo_stingray': (47, 'keep'), 'mo_ray': (48, 'keep'), 'mo_manta': (49, 'keep'), 'mo_abalone': (57, 'keep'), 'mo_turtle': (58, 'keep'),
   'mo_coral': (59, 'keep'), 'mo_lobster': (62, 'keep'), 'mo_hermit': (63, 'keep'), 'mo_vstar': (64, 'keep'), 'mo_rstar': (65, 'keep'),
-  'mo_blob': (70, 'flip'), 'mo_angler': (71, 'flip'), 'mo_eeel': (72, 'keep'), 'mo_snake': (73, 'keep'), 'mo_oranda': (75, 'keep'),
+  'mo_blob': (70, 'flip'), 'mo_angler': (71, 'flip'), 'mo_eeel': (72, 'keep'), 'mo_snake': (73, 'keep'), 'mo_oranda': (75, 'flip'),
   'mo_bottle': (77, 'keep'),
 }
 for n, (i, mode) in MO_ICONS.items():
     c = MO.crop(((i % 10) * 16, (i // 10) * 16, (i % 10) * 16 + 16, (i // 10) * 16 + 16))
-    if mode == 'rot': c = rotsprite(c, -135)
+    # the diagonal icons face up-left, so turning them leaves the belly up: flip back upright
+    if mode == 'rot': c = rotsprite(c, -135).transpose(Image.FLIP_TOP_BOTTOM)
     elif mode == 'flip': c = c.transpose(Image.FLIP_LEFT_RIGHT)
     sprites[n] = c.crop(c.getbbox())
 
