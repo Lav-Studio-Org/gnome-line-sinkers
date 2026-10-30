@@ -27,7 +27,7 @@
       root.addEventListener('resize', () => this.resize());
     },
     resize() {
-      const dpr = Math.min(root.devicePixelRatio || 1, 2.5);
+      const dpr = Math.min(root.devicePixelRatio || 1, 2);
       const w = Math.floor(innerWidth * dpr), h = Math.floor(innerHeight * dpr);
       this.cv.width = w; this.cv.height = h; this.dpr = dpr;
       // aim for ~62 m of water on screen, at a whole-number scale
@@ -67,6 +67,19 @@
       if (f.mut === 2) return 'prism' + (Math.floor(this.t * 6 + f.ph) % 6);
       if (sp.shadow) return 'shadow';
       return '';
+    },
+
+    // Draws something once into an offscreen canvas and reuses it (rocks, nets, light holes).
+    baked(key, w, h, draw) {
+      const B = this.bakes || (this.bakes = new Map());
+      let c = B.get(key);
+      if (c) return c;
+      if (B.size > 400) B.clear();
+      c = document.createElement('canvas');
+      c.width = Math.max(1, w); c.height = Math.max(1, h);
+      draw(c.getContext('2d'));
+      B.set(key, c);
+      return c;
     },
 
     // ---------- effects API (called from main.js on run events) ----------
@@ -496,21 +509,25 @@
         const z = E.zoneAt(o.y);
         const x = X(o.x), y = Y(o.y);
         if (o.k === 'rock') {
-          const r = Math.round(o.r * PXM);
-          ctx.fillStyle = '#0b0d14'; disc(ctx, x, y, r + 1);
-          // stone tones, pulled toward the water colour so deep rocks sit in the dark
-          ctx.fillStyle = mix('#2e2a2c', ZONES[z].deep, 0.35); disc(ctx, x, y, r);
-          ctx.fillStyle = mix('#5a5148', ZONES[z].deep, 0.35); disc(ctx, x - Math.round(r * 0.12), y - Math.round(r * 0.16), Math.round(r * 0.8));
-          ctx.fillStyle = mix('#857762', ZONES[z].deep, 0.35); disc(ctx, x - Math.round(r * 0.3), y - Math.round(r * 0.38), Math.max(1, Math.round(r * 0.36)));
-          ctx.fillStyle = '#0b0d14';
-          for (let k = 0; k < 4; k++) ctx.fillRect(x + Math.round((hash(o.seed + k) - 0.5) * r), y + Math.round((hash(o.seed + k + 9) - 0.3) * r * 0.8), 1, 1);
-          if (z <= 1) {
-            ctx.fillStyle = z === 0 ? '#3c7a3a' : '#ff8a6b';
-            for (let k = -r + 2; k < r - 2; k += 3) {
-              const yy = y - Math.round(Math.sqrt(Math.max(0, r * r - k * k)));
-              if (hash(o.seed + k * 3) < 0.6) ctx.fillRect(x + k, yy - 2, 2, 2 + Math.round(hash(o.seed + k) * 2));
+          const r = Math.round(o.r * PXM), m = r + 5;
+          const img = this.baked('rock|' + o.seed + '|' + r + '|' + z, m * 2, m * 2, (c) => {
+            const x = m, y = m;
+            c.fillStyle = '#0b0d14'; disc(c, x, y, r + 1);
+            // stone tones, pulled toward the water colour so deep rocks sit in the dark
+            c.fillStyle = mix('#2e2a2c', ZONES[z].deep, 0.35); disc(c, x, y, r);
+            c.fillStyle = mix('#5a5148', ZONES[z].deep, 0.35); disc(c, x - Math.round(r * 0.12), y - Math.round(r * 0.16), Math.round(r * 0.8));
+            c.fillStyle = mix('#857762', ZONES[z].deep, 0.35); disc(c, x - Math.round(r * 0.3), y - Math.round(r * 0.38), Math.max(1, Math.round(r * 0.36)));
+            c.fillStyle = '#0b0d14';
+            for (let k = 0; k < 4; k++) c.fillRect(x + Math.round((hash(o.seed + k) - 0.5) * r), y + Math.round((hash(o.seed + k + 9) - 0.3) * r * 0.8), 1, 1);
+            if (z <= 1) {
+              c.fillStyle = z === 0 ? '#3c7a3a' : '#ff8a6b';
+              for (let k = -r + 2; k < r - 2; k += 3) {
+                const yy = y - Math.round(Math.sqrt(Math.max(0, r * r - k * k)));
+                if (hash(o.seed + k * 3) < 0.6) c.fillRect(x + k, yy - 2, 2, 2 + Math.round(hash(o.seed + k) * 2));
+              }
             }
-          }
+          });
+          ctx.drawImage(img, x - m, y - m);
         } else if (o.k === 'urchin') {
           const n = 10;
           for (let k = 0; k < n; k++) {
@@ -536,19 +553,21 @@
           ctx.fillStyle = Math.sin(this.t * 5 + o.ph) > 0.2 ? '#ff3b2f' : '#6b1a14'; ctx.fillRect(x, yy - 1, 2, 2);
         } else if (o.k === 'net') {
           const w = Math.round(o.w * PXM), h = Math.round(o.h * PXM);
-          const x0 = x - (w >> 1), y0 = y - (h >> 1);
-          ctx.fillStyle = 'rgba(230,216,187,0.38)';
-          for (let d = -h; d < w; d += 4) {
-            for (let k = 0; k < h; k++) {
-              const ax = x0 + d + k, bx = x0 + d + h - k;
-              const sag = Math.round(Math.sin((k / h) * Math.PI + this.t + o.x) * 1);
-              if (ax >= x0 && ax < x0 + w && hash(ax * 3 + k) > 0.12) ctx.fillRect(ax, y0 + k + sag, 1, 1);
-              if (bx >= x0 && bx < x0 + w && hash(bx * 5 + k) > 0.12) ctx.fillRect(bx, y0 + k + sag, 1, 1);
+          const img = this.baked('net|' + w + '|' + h + '|' + Math.round(o.x * 10), w + 2, h + 3, (c) => {
+            c.fillStyle = 'rgba(230,216,187,0.38)';
+            for (let d = -h; d < w; d += 4) {
+              for (let k = 0; k < h; k++) {
+                const ax = d + k, bx = d + h - k;
+                if (ax >= 0 && ax < w && hash(ax * 3 + k + o.x) > 0.12) c.fillRect(ax + 1, k + 3, 1, 1);
+                if (bx >= 0 && bx < w && hash(bx * 5 + k + o.x) > 0.12) c.fillRect(bx + 1, k + 3, 1, 1);
+              }
             }
-          }
-          ctx.fillStyle = '#cdb995'; ctx.fillRect(x0, y0 - 1, w, 1);
-          ctx.fillStyle = '#ff6b3d';
-          for (let k = 0; k <= w; k += 9) ctx.fillRect(x0 + k - 1, y0 - 2, 3, 3);
+            c.fillStyle = '#cdb995'; c.fillRect(1, 2, w, 1);
+            c.fillStyle = '#ff6b3d';
+            for (let k = 0; k <= w; k += 9) c.fillRect(k, 1, 3, 2);
+          });
+          // the whole net sways a little instead of redrawing every knot
+          ctx.drawImage(img, x - (w >> 1) - 1, y - (h >> 1) - 3 + Math.round(Math.sin(this.t + o.x)));
         } else if (o.k === 'cur') {
           const h = o.h * PXM;
           ctx.fillStyle = 'rgba(220,245,255,0.16)';
@@ -665,10 +684,13 @@
       d.fillRect(0, sy, this.artW, this.artH - sy);
       d.globalCompositeOperation = 'destination-out';
       const hole = (x, y, r) => {
-        // three flat rings instead of a smooth gradient
-        d.fillStyle = 'rgba(0,0,0,0.38)'; disc(d, x, y, r);
-        d.fillStyle = 'rgba(0,0,0,0.38)'; disc(d, x, y, Math.round(r * 0.72));
-        d.fillStyle = 'rgba(0,0,0,0.5)'; disc(d, x, y, Math.round(r * 0.46));
+        // three flat rings instead of a smooth gradient, pre-drawn once per radius
+        const st = this.baked('hole|' + r, r * 2 + 1, r * 2 + 1, (c) => {
+          c.fillStyle = 'rgba(0,0,0,0.38)'; disc(c, r, r, r);
+          c.fillStyle = 'rgba(0,0,0,0.38)'; disc(c, r, r, Math.round(r * 0.72));
+          c.fillStyle = 'rgba(0,0,0,0.5)'; disc(c, r, r, Math.round(r * 0.46));
+        });
+        d.drawImage(st, x - r, y - r);
       };
       if (g.mode === 'cast' && g.run) hole(Math.round(g.run.x * PXM) + this.ox, Y(g.run.y), 64);
       if (run) {

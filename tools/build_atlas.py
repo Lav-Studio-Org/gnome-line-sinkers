@@ -1,21 +1,23 @@
-# Builds img/atlas.png (+ js/atlas.js) from the original asset pack and hand-made sprites.
+# Builds img/atlas.png (+ js/atlas.js) from the asset packs and hand-made sprites.
 # Run: python3 tools/build_atlas.py <path to Assets folder>
+# Assets/ (not in git, the licences forbid redistributing the raw packs):
+#   pixel-gnome/             Pixel Gnome Fishing Pack sample, one PNG per fish (no outline versions)
+#   moranovo-fishing-icons/  80+ Fishing Icons: Fishing Icons.png (16 px grid) + Licence.txt
+#   free-fish/               free fish.png (3 x 3 grid of 16 px fish)
 import sys, json, os
 from PIL import Image
 import numpy as np
 from rotsprite import rotsprite
 SRC = sys.argv[1]
 ROOT = os.path.join(os.path.dirname(__file__), '..')
-PG = os.path.join(SRC, 'SAMPLE PACK - Pixel Gnome Fishing Pack', 'SAMPLE PACK - Pixel Gnome Fishing Pack')
+PG = os.path.join(SRC, 'pixel-gnome')
 sprites = {}
 def pack(name, file): sprites[name] = Image.open(file).convert('RGBA')
-for folder, names in [('A - Salt Water', ['Anchovy', 'Clownfish', 'Crab - Dungeness', 'Pufferfish', 'Surgeonfish']),
-                      ('B - Fresh Water', ['Angelfish', 'Bass', 'Catfish', 'Goldfish', 'Rainbow Trout']),
-                      ('C - Misc', ['Rusty Can', 'Worm'])]:
-    for n in names:
-        key = n.lower().replace(' - dungeness', '').replace(' ', '_')
-        pack(key, os.path.join(PG, folder, n + '.png'))
-free = Image.open(os.path.join(SRC, 'free fish', 'free fish.png')).convert('RGBA')
+for n in ['Anchovy', 'Clownfish', 'Crab - Dungeness', 'Pufferfish', 'Surgeonfish',
+          'Angelfish', 'Bass', 'Catfish', 'Goldfish', 'Rainbow Trout', 'Rusty Can', 'Worm']:
+    key = n.lower().replace(' - dungeness', '').replace(' ', '_')
+    pack(key, os.path.join(PG, n + '.png'))
+free = Image.open(os.path.join(SRC, 'free-fish', 'free fish.png')).convert('RGBA')
 free_names = ['rainbowfish', 'whitefish', 'kelp', 'sardine', 'scallop', 'redcrab', 'koi', 'striped', 'silverfish']
 for i, n in enumerate(free_names):
     c = free.crop(((i % 3) * 16, (i // 3) * 16, (i % 3) * 16 + 16, (i // 3) * 16 + 16))
@@ -29,7 +31,7 @@ for i, n in enumerate(free_names):
 
 # 80+ Fishing Icons (Moranovo): a 10 x 9 grid of 16 px icons. Most fish are drawn diagonally
 # (head up-left), so they are RotSprite-rotated to face right; side-on ones facing left are flipped.
-MO = Image.open(os.path.join(SRC, '80+Fishing Icons Asset Pack', '1.0', 'Fishing Icons.png')).convert('RGBA')
+MO = Image.open(os.path.join(SRC, 'moranovo-fishing-icons', 'Fishing Icons.png')).convert('RGBA')
 MO_ICONS = {
   # name: (index in the grid, 'rot' | 'flip' | 'keep')
   'mo_stickleback': (10, 'rot'), 'mo_sunfish': (11, 'rot'), 'mo_prawn': (12, 'keep'), 'mo_minnow': (13, 'rot'),
@@ -101,7 +103,20 @@ H = y + rowh
 atlas = Image.new('RGBA', (W, H), (0, 0, 0, 0))
 for n, im in sprites.items():
     r = rects[n]; atlas.paste(im, (r[0], r[1]))
-atlas.save(os.path.join(ROOT, 'img', 'atlas.png'))
+# exact palette (the sheet has well under 256 colours) keeps it lossless and much smaller
+cols = atlas.getcolors(4096)
+if cols and len(cols) <= 256:
+    pal = Image.new('P', (1, 1))
+    flat = []
+    for _, c in cols: flat += list(c[:3])
+    out = Image.new('P', atlas.size)
+    idx = {c: i for i, (_, c) in enumerate(cols)}
+    out.putdata([idx[p] for p in atlas.getdata()])
+    out.putpalette(flat + [0] * (768 - len(flat)))
+    out.info['transparency'] = bytes(c[3] for _, c in cols)
+    out.save(os.path.join(ROOT, 'img', 'atlas.png'), optimize=True, transparency=bytes(c[3] for _, c in cols))
+else:
+    atlas.save(os.path.join(ROOT, 'img', 'atlas.png'), optimize=True)
 import base64
 png64 = base64.b64encode(open(os.path.join(ROOT, 'img', 'atlas.png'), 'rb').read()).decode()
 with open(os.path.join(ROOT, 'js', 'atlas.js'), 'w') as f:

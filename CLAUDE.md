@@ -18,4 +18,7 @@ ship to the Play Store as a web payload, so landscape + mobile first.
 - The docked preview run is the next cast (`g.preview` becomes `g.run`), so idle fish = cast fish.
 - Credit both asset packs (Moranovo 80+ Fishing Icons, PixelGnome Fishing Pack sample) in the
   in-game credits and README.
-- Sprites: edit `tools/build_atlas.py` and run `python3 tools/build_atlas.py Assets`.
+- Sprites: edit `tools/build_atlas.py` and run `python3 tools/build_atlas.py Assets` (folder layout in
+  the build script header). Static drawings (rocks, nets, light holes) go through `R.baked()` so
+  they are drawn once, not every frame. Fonts in `style.css` are subset to the characters the UI uses:
+  re-subset if you add copy with new non-ASCII characters.

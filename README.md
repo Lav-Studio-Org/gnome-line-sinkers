@@ -66,7 +66,14 @@ node scripts/smoke.js http://localhost:8124/ shots   # browser smoke test (Playw
 ```
 
 Rebuild the sprite sheet after changing sprites: `python3 tools/build_atlas.py Assets`
-(needs Pillow and numpy).
+(needs Pillow and numpy). `Assets/` is kept out of git and holds only the files the build reads:
+
+```
+Assets/
+  pixel-gnome/             12 fish PNGs + Read Me.txt   (Pixel Gnome Fishing Pack sample)
+  moranovo-fishing-icons/  Fishing Icons.png + Licence.txt + Fishing Icon List.txt
+  free-fish/               free fish.png
+```
 
 ## Credits
 
