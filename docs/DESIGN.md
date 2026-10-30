@@ -159,3 +159,26 @@ achievements, lifetime coins, season), the rarest achievement as a ribbon, and a
 footer. Buttons: Share (system share sheet with the image where supported), Save image, and
 WhatsApp (text). Instagram has no web share link, so the hint says to save the image and post
 it, or to use the share sheet on phones.
+
+## 12. Portrait and landscape
+
+Settings > Screen: Auto (follows how the phone is held), Landscape or Portrait. A pinned choice
+asks the browser to lock the orientation (works in the installed app and fullscreen); when it
+cannot, a full-screen note asks to turn the phone, with a "Follow the phone" way out. The
+layout itself always follows the real window shape (`body.port`), so nothing ever renders
+sideways.
+
+Portrait rules (`/* portrait */` block at the end of `style.css`):
+
+- **Thumb zone.** Menu, Trophies, Shop, Fishdex and Settings move to a five-button bottom bar;
+  Skill, Auto and the cast chip sit right above it. The top keeps only the wallet.
+- **Same sea, same balance.** The sea stays 100 m wide (the balance sim plays 100 m). A
+  portrait screen shows about 65 m at the same pixel size as landscape, and the camera pans
+  sideways after the hook (`R.camX`, `R.ox`). A narrower sea was measured in the sim at up to
+  18% less income, so it was not an option.
+- **More depth.** The water line sits at 30% of the screen instead of 42%, so the extra height
+  is spent on seeing fish coming.
+- **Bottom sheets.** Haul, Settings and dialogs slide up from the bottom; the skill panel docks
+  under the tree; the start menu is a bottom card under the live scene.
+- **Tab strip.** The dark side rail of the Fishdex, Trophies and Shop becomes a scrolling tab
+  strip on top; cards are one column on phones and two or more on tablets.

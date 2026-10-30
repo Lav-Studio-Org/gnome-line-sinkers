@@ -43,8 +43,38 @@
       this.initTreeInput();
       const rot = document.createElement('div');
       rot.className = 'rotate';
-      rot.innerHTML = `${ic('steer')}<h2>Gnome, Line &amp; Sinker</h2><p>${KL.lang === 'id' ? 'Putar ponselmu ke posisi mendatar.' : 'Turn your phone sideways.'}</p>`;
+      rot.id = 'rotate';
       document.body.appendChild(rot);
+      addEventListener('resize', () => this.layout());
+      this.layout();
+    },
+    // Portrait or landscape follows the real window shape. Settings can pin one: we ask the
+    // browser to lock it (works in the installed app / fullscreen) and otherwise ask the player
+    // to turn the phone, with a way out.
+    layout() {
+      const want = (this.g && this.g.save.settings.orient) || 'auto';
+      const port = innerHeight > innerWidth;
+      document.body.classList.toggle('port', port);
+      const touch = matchMedia('(pointer: coarse)').matches;
+      const wrong = touch && want !== 'auto' && (want === 'port') !== port;
+      document.body.classList.toggle('need-rotate', wrong);
+      if (wrong) {
+        $('rotate').innerHTML = `${ic('steer')}<h2>Gnome, Line &amp; Sinker</h2><p>${t(want === 'port' ? 'rotPort' : 'rotLand')}</p>
+          <button class="btn" id="rotAuto">${ic('check')}<span>${t('rotAuto')}</span></button>`;
+        $('rotAuto').onclick = () => { this.g.save.settings.orient = 'auto'; this.g.applySettings(); };
+      }
+      if (this._port !== port) {
+        this._port = port;
+        if (this.open === 'tree') this.center(this.sel || 'root');
+      }
+    },
+    lockOrientation() {
+      const want = this.g.save.settings.orient || 'auto';
+      const o = screen.orientation;
+      if (!o) return;
+      try {
+        if (want === 'auto') { if (o.unlock) o.unlock(); } else if (o.lock) o.lock(want === 'port' ? 'portrait' : 'landscape').catch(() => {});
+      } catch (e) { /* not supported outside fullscreen / installed app */ }
     },
     translate() {
       document.querySelectorAll('[data-t]').forEach((el) => { el.textContent = t(el.dataset.t); });
@@ -307,8 +337,10 @@
     },
     center(id) {
       const [x, y] = this.pos(E.NODE[id]);
-      const panelW = $('nodePanel').offsetWidth || 300;
-      const vw = innerWidth - panelW - 20, vh = innerHeight;
+      const panel = $('nodePanel');
+      const port = document.body.classList.contains('port');
+      const vw = port ? innerWidth : innerWidth - (panel.offsetWidth || 300) - 20;
+      const vh = port ? innerHeight - (panel.offsetHeight || 260) - 20 : innerHeight;
       this.view.z = Math.max(0.6, Math.min(1, vh / 560));
       this.view.x = vw / 2 - x * this.view.z;
       this.view.y = vh / 2 - y * this.view.z;
@@ -429,6 +461,7 @@
         <div class="set-row" style="--acc:var(--accent)">${ic('music')}<span>${t('music')}</span>${seg('music', onoff)}</div>
         <div class="set-row" style="--acc:var(--accent)">${ic('vibe')}<span>${t('haptics')}</span>${seg('haptics', onoff)}</div>
         <div class="set-row" style="--acc:var(--accent)">${ic('globe')}<span>${t('language')}</span>${seg('lang', [['id', 'ID'], ['en', 'EN']])}</div>
+        <div class="set-row set-wrap" style="--acc:var(--accent)">${ic('steer')}<span>${t('orient')}</span>${seg('orient', [['auto', t('orAuto')], ['land', t('orLand')], ['port', t('orPort')]])}</div>
         <p class="set-note">${KL.lang === 'id' ? 'Lemparan' : 'Casts'}: ${KL.fmt(s.casts)} · ${KL.lang === 'id' ? 'Total koin' : 'Lifetime coins'}: ${KL.fmt(s.lifetime)} · ${t('seasonN')} ${s.seasons + 1}</p>
         <div class="set-row"><button class="btn" id="setExport">${ic('download')}<span>${t('menuExport')}</span></button><button class="btn" id="setImport">${ic('upload')}<span>${t('menuImport')}</span></button></div>
         <div class="set-row"><button class="btn" id="resetBtn" style="--acc:var(--red)">${ic('trash')}<span>${t('reset')}</span></button></div>
@@ -436,7 +469,7 @@
       $('setList').querySelectorAll('.seg button').forEach((b) => {
         b.onclick = () => {
           const k = b.dataset.k;
-          s.settings[k] = k === 'lang' ? b.dataset.v : b.dataset.v === 'true';
+          s.settings[k] = k === 'lang' || k === 'orient' ? b.dataset.v : b.dataset.v === 'true';
           KL.Audio.click();
           this.g.applySettings();
           this.openSettings();

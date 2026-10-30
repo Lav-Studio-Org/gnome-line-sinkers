@@ -35,7 +35,7 @@
       v: 1, coins: 0, pearls: 0, pearlsEver: 0, seasons: 0, seasonEarned: 0, lifetime: 0,
       nodes: { root: 1 }, caught: {}, variants: {}, best: 0, bestEver: 0, casts: 0, pearlDepth: 0,
       zone: 0, lastSeen: 0, playTime: 0, auto: false, seed: (Math.random() * 1e9) | 0,
-      settings: { sound: true, music: true, lang: null, haptics: true },
+      settings: { sound: true, music: true, lang: null, haptics: true, orient: 'auto' },
       shells: 0, shellsEver: 0, ach: {}, rec: newRec(),
       gear: { owned: { classic: 1, sampan: 1 }, skin: 'classic', boat: 'sampan' },
     };

@@ -11,9 +11,18 @@
   const R = {
     cv: null, ctx: null, img: null, dpr: 1, S: 3, artW: 400, artH: 240, cache: {},
     camY: -30, shake: 0, t: 0, texts: [], bubbles: [], flyers: [], motes: [], ripples: [], booms: [], line: null,
-    // the play area is at most 100 m wide (the balance sim uses 100); wider screens get more cliff
-    get worldW() { return Math.min(100, Math.floor(this.artW / PXM)); },
-    get ox() { return Math.round((this.artW - this.worldW * PXM) / 2); },
+    // The play area is always 100 m wide (the balance sim uses 100). Wider screens get more
+    // cliff; narrower ones (portrait) see part of it and the camera pans after the hook.
+    camX: 50,
+    get worldW() { return 100; },
+    get ox() {
+      const span = this.worldW * PXM;
+      if (this.artW >= span) return Math.round((this.artW - span) / 2);
+      return Math.max(this.artW - span, Math.min(0, Math.round(this.artW / 2 - this.camX * PXM)));
+    },
+    get portrait() { return this.cv && this.cv.height > this.cv.width; },
+    // share of the screen above the water while docked (portrait shows more sea)
+    get sky() { return this.portrait ? 0.3 : 0.42; },
     get viewH() { return this.artH / PXM; },
 
     init(canvas, img) {
@@ -30,8 +39,9 @@
       const dpr = Math.min(root.devicePixelRatio || 1, 2);
       const w = Math.floor(innerWidth * dpr), h = Math.floor(innerHeight * dpr);
       this.cv.width = w; this.cv.height = h; this.dpr = dpr;
-      // aim for ~62 m of water on screen, at a whole-number scale
-      this.S = Math.max(2, Math.round(h / 250));
+      // landscape: aim for ~62 m of water on screen; portrait: ~65 m of width, the rest is depth.
+      // Always a whole-number scale so the pixel art stays crisp.
+      this.S = h > w ? Math.max(2, Math.round(w / 260)) : Math.max(2, Math.round(h / 250));
       this.artW = Math.ceil(w / this.S); this.artH = Math.ceil(h / this.S);
       this.dark.width = this.artW; this.dark.height = this.artH;
     },
@@ -152,11 +162,14 @@
         const r = g.run;
         target = r.phase === 'down' ? r.y - this.viewH * 0.28 : r.y - this.viewH * 0.62;
         if (r.phase === 'down' && r.y < r.st.line * r.st.fall) target = r.y - this.viewH * 0.4;
-        target = Math.max(-this.viewH * 0.42, target);
-      } else if (g.mode === 'haul' && g.run) target = -this.viewH * 0.42;
-      else target = -this.viewH * 0.42;
+        target = Math.max(-this.viewH * this.sky, target);
+      } else if (g.mode === 'haul' && g.run) target = -this.viewH * this.sky;
+      else target = -this.viewH * this.sky;
       const k = g.mode === 'cast' ? 1 - Math.exp(-dt * 9) : 1 - Math.exp(-dt * 3);
       this.camY += (target - this.camY) * k;
+      // sideways camera (only moves when the screen is narrower than the sea)
+      const tx = g.mode === 'cast' && g.run ? g.run.x : g.mode === 'throw' && g.throw ? (this.worldW / 2 + g.throw.x) / 2 : this.worldW / 2;
+      this.camX += (tx - this.camX) * (g.mode === 'cast' ? 1 - Math.exp(-dt * 4) : 1 - Math.exp(-dt * 2.5));
       const camY = this.camY;
       const midDepth = Math.max(0, camY + this.viewH * 0.5);
 
@@ -298,7 +311,7 @@
         const y = i * seg;
         const z = E.zoneAt(y);
         const wl = this.ox + Math.max(0, Math.floor(hash(i * 2) * 9 + 6 * Math.sin(i * 0.21)) + Math.min(10, y / 60) - 4);
-        const wr = this.ox + Math.max(0, Math.floor(hash(i * 2 + 1) * 9 + 6 * Math.cos(i * 0.17)) + Math.min(10, y / 60) - 4);
+        const wr = this.artW - this.ox - this.worldW * PXM + Math.max(0, Math.floor(hash(i * 2 + 1) * 9 + 6 * Math.cos(i * 0.17)) + Math.min(10, y / 60) - 4);
         ctx.fillStyle = mix(ZONES[z].deep, '#05070d', 0.45);
         const y0 = Y(y), h = seg * PXM + 1;
         ctx.fillRect(0, y0, Math.max(0, wl), h);

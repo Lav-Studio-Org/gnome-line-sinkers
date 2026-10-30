@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 Gnome, Line & Sinker (working title KAIL!): chill fishing incremental game (Lav Studio). Plain web game, no build step; will
-ship to the Play Store as a web payload, so landscape + mobile first.
+ship to the Play Store as a web payload, so mobile first, portrait and landscape (layout follows `body.port`, sea stays 100 m wide, camera pans).
 
 - No emoji or text symbols as icons: use the `#i-*` SVG sprite in `index.html` via `ic('name')`.
   `node scripts/check-no-emoji.js` must pass.

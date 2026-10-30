@@ -4,7 +4,7 @@
   "description": "Game memancing santai dengan pohon skill.",
   "start_url": "./",
   "display": "fullscreen",
-  "orientation": "landscape",
+  "orientation": "any",
   "background_color": "#101a2b",
   "theme_color": "#14121c",
   "icons": [{ "src": "img/icon.png", "sizes": "512x512", "type": "image/png" }]

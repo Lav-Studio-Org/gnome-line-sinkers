@@ -34,6 +34,7 @@
       A.configure({ sound: st.sound, music: st.music });
       UI.translate();
       UI.hud();
+      if (UI.layout) { UI.layout(); UI.lockOrientation(); }
       this.persist();
     },
     // The fish you see while docked are the fish of your next cast: the preview run *is* the next run.

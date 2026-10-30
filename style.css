@@ -249,20 +249,13 @@ canvas#game { position: fixed; inset: 0; width: 100%; height: 100%; display: blo
 .toast small { display: block; color: var(--muted); font-size: .78em; text-transform: uppercase; letter-spacing: .06em; }
 .toast.out { opacity: 0; transform: translateX(-8px); transition: .3s; }
 
-/* ads (mock) */
-.ad-mock { position: fixed; inset: 0; z-index: 100; background: var(--ink); color: var(--paper); display: flex; align-items: center; padding: 6vw; opacity: 0; transition: opacity .2s; }
-.ad-mock.show { opacity: 1; }
-.ad-box { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
-.ad-tag { background: var(--green); color: #fff; padding: 2px 8px; border-radius: 3px; font-size: .85em; }
-.ad-title { font-size: 2em; font-weight: 600; }
-.ad-ring { font-size: 3em; font-weight: 600; color: var(--gold); }
-
-/* portrait guard: the game is landscape */
-.rotate { position: fixed; inset: 0; z-index: 200; background: var(--night); color: var(--paper); display: none; padding: 10vw; flex-direction: column; justify-content: center; gap: 12px; --acc: var(--accent); }
+/* asks to turn the phone when the orientation picked in Settings does not match */
+.rotate { position: fixed; inset: 0; z-index: 200; background: var(--night); color: var(--paper); display: none; padding: 10vw; flex-direction: column; justify-content: center; align-items: flex-start; gap: 12px; --acc: var(--accent); }
 .rotate .ic { width: 64px; height: 64px; }
-@media (orientation: portrait) and (max-width: 700px) { .rotate { display: flex; } }
+.rotate .btn { color: var(--ink); margin-top: 8px; }
+body.need-rotate .rotate { display: flex; }
 
-@media (max-height: 420px) {
+@media (max-height: 420px) and (orientation: landscape) {
   .sheet { width: min(400px, 50vw); }
   .haul-list li { padding-top: 2px; padding-bottom: 2px; }
   .node-panel { width: min(300px, 40vw); }
@@ -319,3 +312,51 @@ canvas#game { position: fixed; inset: 0; width: 100%; height: 100%; display: blo
 .toast-ach .ach-ic { width: 34px; height: 34px; background: var(--tc); color: var(--ink); --acc: var(--paper); }
 .toast-ach .ach-ic .ic { width: 20px; height: 20px; }
 .toast-ach .ach-pay { margin-left: 6px; }
+
+/* ---------- portrait (body.port, set from the real window shape) ----------
+   Thumb zone first: navigation moves to a bottom bar, sheets become bottom sheets, side rails
+   become a tab strip on top, and the camera pans across the sea (see R.ox). */
+body.port { --u: clamp(9px, 3.3vw, 14px); --tap: max(44px, calc(var(--u) * 3.5)); }
+.port .wallet { flex-wrap: wrap; max-width: calc(100vw - var(--u) * 1.8); }
+.port .pill { font-size: calc(var(--u) * 1.3); height: calc(var(--tap) * .78); }
+.port .hud-right { top: auto; left: calc(var(--u) * .9 + var(--safe-l)); bottom: calc(var(--u) * .9 + var(--safe-b));
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.port .hud-right .btn.icon { width: auto; }
+.port .cast-info { top: calc(var(--u) * .9); }
+.port .dock { bottom: calc(var(--tap) + var(--u) * 1.7 + var(--safe-b)); flex-wrap: wrap; align-items: stretch; gap: calc(var(--u) * .6); }
+.port .dock-stats { order: 0; flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: 0 1em; }
+.port .dock-stats span { margin: 0; }
+.port .btn-cast { order: 1; flex: 1 1 100%; justify-content: center; }
+.port .btn-tree { order: 2; flex: 1; justify-content: center; }
+.port .btn-auto { order: 3; flex: 1; justify-content: center; }
+.port .hint { left: calc(var(--u) * .9 + var(--safe-l)); right: calc(var(--u) * .9 + var(--safe-r)); max-width: none; }
+.port .banner { left: calc(var(--u) * .9 + var(--safe-l)); top: calc(var(--u) * 9); }
+.port .toasts { left: calc(var(--u) * .9 + var(--safe-l)); right: calc(var(--u) * .9); top: calc(var(--u) * 5.2); }
+.port .toast { max-width: 100%; }
+
+.port .sheet { top: auto; left: calc(var(--u) * .6 + var(--safe-l)); right: calc(var(--u) * .6 + var(--safe-r)); bottom: calc(var(--u) * .6 + var(--safe-b));
+  width: auto; max-height: 80vh; transform: translateY(calc(100% + 40px)); }
+.port .sheet.open { transform: none; }
+.port #haul { max-height: 60vh; }
+
+.port .menu { align-items: flex-end; }
+.port .menu-panel { flex: 1; width: auto; max-height: calc(100% - var(--u) * 1.8); margin: calc(var(--u) * .9); margin-bottom: calc(var(--u) * .9 + var(--safe-b)); animation-name: slideup; }
+@keyframes slideup { from { transform: translateY(16px); opacity: 0; } }
+.port .menu-foot { margin-top: 0; }
+
+.port .tree-top { right: calc(var(--u) * .9 + var(--safe-r)); }
+.port .node-panel { top: auto; left: calc(var(--u) * .9 + var(--safe-l)); width: auto; max-height: 48vh; }
+
+.port #book.open { flex-direction: column; }
+.port .book-rail { width: auto; flex: none; flex-direction: row; align-items: center; overflow-x: auto; overflow-y: hidden; padding: calc(var(--u) * .6); scrollbar-width: none; }
+.port .book-rail h2 { display: none; }
+.port .rail-btn { flex: none; min-height: calc(var(--tap) * .85); padding: 4px 10px; gap: 8px; }
+.port .rail-wallet { margin: 0 0 0 auto; padding: 0 0 0 8px; }
+.port .book-main { min-height: 0; padding: calc(var(--u) * .8) calc(var(--u) * .9) calc(var(--u) * .4 + var(--safe-b)); }
+.port .book-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); }
+.port .stat-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+.port .share-wrap { flex-direction: column; align-items: stretch; }
+.port .share-img { max-width: 100%; max-height: 56vh; width: auto; height: auto; align-self: flex-start; }
+.port .share-side { max-width: none; }
+.set-wrap { flex-wrap: wrap; }
+.port .rail-btn:not(.on) small { display: none; }

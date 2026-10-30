@@ -13,6 +13,8 @@ where goldfish have three eyes.
 
 <img src="docs/screenshots/share-card.png" alt="Share card" width="270">
 
+![Portrait](docs/screenshots/portrait.png)
+
 Plain HTML + JS, no build step, no dependencies, works offline.
 
 ## Play
@@ -46,6 +48,8 @@ The start menu has Continue / New game, **Save to file** (downloads a `.json` sa
   Instagram and WhatsApp, or the phone's share sheet).
 - Shop with 8 gnome outfits and 8 boats (sampan, jukung, pinisi, mini sub, ghost ship...),
   bought with shells from achievements; the one you wear gives a small perk.
+- Plays in portrait or landscape (auto, or pinned in Settings), with a bottom bar and bottom
+  sheets on phones held upright.
 - Indonesian and English (follows the device language, switch in Settings).
 
 ## Files

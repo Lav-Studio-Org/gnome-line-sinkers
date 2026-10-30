@@ -131,6 +131,21 @@ const fs = require('fs');
   await page.waitForTimeout(300);
   await shot('8-settings');
   console.log(JSON.stringify(await page.evaluate(() => ({ coins: Math.round(window.__kail.g.save.coins), casts: window.__kail.g.save.casts, mode: window.__kail.g.mode }))));
+  // portrait phone: bottom bar, panning camera, a full cast
+  const pctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true });
+  const pp = await pctx.newPage();
+  pp.on('pageerror', (e) => errors.push('portrait: ' + e));
+  await pp.goto(url);
+  await pp.waitForFunction(() => window.__kail && window.__kail.g.stats);
+  await pp.click('#menuPlay');
+  if (!(await pp.evaluate(() => document.body.classList.contains('port')))) errors.push('portrait layout not applied');
+  await pp.touchscreen.tap(300, 500);
+  await pp.evaluate(() => { const k = window.__kail; k.g.save.auto = true; k.g.stats.autoSkill = 0.9; k.g.manualT = 0; });
+  await pp.waitForSelector('#haul.open', { timeout: 30000 });
+  await pp.waitForTimeout(500);
+  await pp.screenshot({ path: (shots || '/tmp') + '/15-portrait-haul.png' });
+  await pp.click('#haulTake');
+  await pctx.close();
   await browser.close();
   if (errors.length) { console.log('ERRORS:\n' + errors.join('\n')); process.exit(1); }
   console.log('smoke ok');
