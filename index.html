@@ -104,6 +104,7 @@
           <button class="btn" id="menuExport"><svg class="ic"><use href="#i-download"/></svg><span data-t="menuExport">Simpan file</span></button>
         </div>
         <div class="row2">
+          <button class="btn" id="menuHelp"><svg class="ic"><use href="#i-help"/></svg><span data-t="help">Bantuan</span></button>
           <button class="btn" id="menuCredits"><svg class="ic"><use href="#i-star"/></svg><span data-t="menuCredits">Kredit</span></button>
           <button class="btn" id="menuRefresh"><svg class="ic"><use href="#i-refresh"/></svg><span data-t="menuRefresh">Perbarui game</span></button>
         </div>
@@ -130,6 +131,7 @@
     <button class="btn icon" id="trophyBtn" aria-label="Trofi"><svg class="ic"><use href="#i-trophy"/></svg><i class="badge hidden" id="trophyBadge"></i></button>
     <button class="btn icon" id="shopBtn" aria-label="Toko"><svg class="ic"><use href="#i-boat"/></svg><i class="badge hidden" id="shopBadge"></i></button>
     <button class="btn icon" id="bookBtn" aria-label="Buku ikan"><svg class="ic"><use href="#i-book"/></svg></button>
+    <button class="btn icon" id="helpBtn" aria-label="Bantuan"><svg class="ic"><use href="#i-help"/></svg></button>
     <button class="btn icon" id="setBtn" aria-label="Pengaturan"><svg class="ic"><use href="#i-gear"/></svg></button>
   </div>
   <div id="castInfo" class="cast-info hidden">
@@ -195,6 +197,10 @@
   </section>
 
   <!-- settings -->
+  <aside id="help" class="sheet sheet-right" aria-hidden="true">
+    <header class="sheet-head"><h2 data-t="help">Bantuan</h2><button class="btn icon" id="helpClose" aria-label="Tutup"><svg class="ic"><use href="#i-close"/></svg></button></header>
+    <div class="help-list" id="helpList"></div>
+  </aside>
   <aside id="settings" class="sheet sheet-right" aria-hidden="true">
     <header class="sheet-head"><h2 data-t="settings">Pengaturan</h2><button class="btn icon" id="setClose" aria-label="Tutup"><svg class="ic"><use href="#i-close"/></svg></button></header>
     <div class="set-list" id="setList"></div>
@@ -213,6 +219,7 @@
   <script src="js/i18n.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/render.js"></script>
+  <script src="js/help.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/trophies.js"></script>
   <script src="js/global.js"></script>

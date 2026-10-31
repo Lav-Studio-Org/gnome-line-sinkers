@@ -19,7 +19,8 @@ ship to the Play Store as a web payload, so mobile first, portrait and landscape
   `{ game: 'gnome-line-sinker', v, at, save }`.
 - Zone guardians (`BOSSES` in data.js, fight in `stepFight`) gate each zone; the save keeps
   `bosses[id] = { won, left, free }`. Cast conditions (`castCond`) come from the cast number only,
-  so the dock forecast is exact; bait is `save.bait`. Fight harness numbers live in DESIGN.md 14.
+  so the dock forecast is exact; bait is `save.bait`. Beaten guardians rest (`bosses[id].next`, cast
+  number). Fight harness numbers live in DESIGN.md 14. Player-facing rules are in `js/help.js`: keep it in sync.
 - The docked preview run is the next cast (`g.preview` becomes `g.run`), so idle fish = cast fish.
 - Credit both asset packs (Moranovo 80+ Fishing Icons, PixelGnome Fishing Pack sample) in the
   in-game credits and README.

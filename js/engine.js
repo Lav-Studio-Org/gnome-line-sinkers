@@ -349,6 +349,14 @@
 
   // ---------- zone guardians ----------
   const BOSS_SCALE = 3.4;
+  // A guardian you have met in a rematch leaves its arena for a while (counted in casts, like the
+  // day and the weather, so changing the clock does nothing and the forecast stays exact):
+  // 3 days (36 casts) after it is caught, 1 day (12 casts) after it gets away. A gate guardian
+  // never rests; it is the wall. Caught again, it pays half (the first catch pays in full).
+  // See docs/DESIGN.md section 14, "Rest".
+  const REST_WIN = 36, REST_ESCAPE = 12, REMATCH_PAY = 0.5;
+  // casts until a beaten guardian is back in its arena (0 = it is there)
+  const bossRest = (s, id) => Math.max(0, (bossState(s, id).next || 0) - s.casts);
   const TELE = 0.45;          // the warning flash before a guardian's move (s)
   const bossState = (s, id) => (s.bosses && s.bosses[id]) || {};
   const bossOpen = (s, id) => { const b = bossState(s, id); return !!(b.won || b.free); };
@@ -364,7 +372,7 @@
     const out = [];
     for (const d of BOSSES) {
       const gate = !bossOpen(s, d.id);
-      if (!gate && d.y > end) continue;
+      if (!gate && (d.y > end || bossRest(s, d.id) > 0)) continue;
       const spi = SP[d.id], sp = SPECIES[spi];
       const [w, h] = spriteSize(sp.sprite);
       const left = gate ? (bossState(s, d.id).left || 1) : 1;
@@ -785,7 +793,10 @@
       items.push(cat);
     }
     // a guardian rides up on the hook; it does not take a crate slot and the cat leaves it alone
-    if (run.trophy) items.push({ sp: run.trophy.sp, mut: -1, twin: false, value: fishValue(s, st, run.trophy), boss: true });
+    if (run.trophy) {
+      const first = !s.caught[SPECIES[run.trophy.sp].id];
+      items.push({ sp: run.trophy.sp, mut: -1, twin: false, value: fishValue(s, st, run.trophy) * (first ? 1 : REMATCH_PAY), boss: true });
+    }
     const base = items.reduce((t, i) => t + i.value, 0);
     const fullB = run.caught.length >= st.cap ? st.full : 0;
     const bulkB = st.bulk * items.length;
@@ -844,9 +855,11 @@
       if (h.boss.win) {
         if (!b.won) { b.won = 1; bossFirst = h.boss.id; shells += BOSS_BY[h.boss.id].shells; }
         delete b.left;
+        b.next = s.casts + REST_WIN;
       } else {
         rec.escapes++;
         if (!b.won && !b.free) b.left = h.boss.left;
+        else b.next = s.casts + REST_ESCAPE;
       }
     }
     addShells(s, shells);
@@ -982,7 +995,7 @@
     DATA: D, NODE, SP, PXM, PRESTIGE_DEPTH, rng, newSave, migrate, lv, stats, valueMult, collectionBonus, mastery,
     zoneAt, nodeCost, nodeState, canBuy, buy, affordableCount, newRun, carryOver, lineLeft, stepRun, haul, settle, fishValue,
     pondRate, offline, prestigeGain, prestige, spriteSize, obsIn,
-    BOSS_BY, BAIT_BY, castCond, weatherAt, timeAt, baitOpen, setBait, gateBoss, bossState, bossOpen,
+    BOSS_BY, BAIT_BY, castCond, weatherAt, timeAt, baitOpen, setBait, gateBoss, bossState, bossOpen, bossRest, REST_WIN, REST_ESCAPE, REMATCH_PAY,
     GEAR_BY, gearFx, achValue, achGoal, achProgress, checkAch, markDay, gearState, buyGear, equip, addShells, newRec,
   };
   if (typeof module !== 'undefined') module.exports = E; else root.KL.Engine = E;

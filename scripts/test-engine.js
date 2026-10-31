@@ -377,4 +377,30 @@ test('cast conditions: the forecast is the cast, the first casts are calm, bait 
   assert(st.st.valueMult > calm.st.valueMult * 1.4);
 });
 
+test('a beaten guardian rests 36 casts, 12 after a rematch it lost; a rematch pays half', () => {
+  const s = E.newSave(); s.casts = 20; s.nodes.line1 = 5;
+  s.bosses.b_catfish = { won: 1 }; s.caught.b_catfish = 1;
+  const run = E.newRun(s, { seed: 2, width: 100 });
+  const b = run.bosses.find((x) => x.id === 'b_catfish');
+  assert(b && !b.gate, 'rematch is there before it rests');
+  run.trophy = { sp: b.sp, mut: -1, twin: false, x: 50, y: 26, boss: b.id };
+  const h = E.haul(s, run);
+  const full = E.fishValue(s, run.st, run.trophy);
+  assert(Math.abs(h.items.find((i) => i.boss).value - full * E.REMATCH_PAY) < 1e-6, 'rematch pays half');
+  h.boss = { id: 'b_catfish', win: true, gate: false, left: 0 };
+  E.settle(s, h);
+  assert.strictEqual(E.bossRest(s, 'b_catfish'), E.REST_WIN);
+  for (let i = 0; i < E.REST_WIN; i++) {
+    assert(!E.newRun(s, { width: 100 }).bosses.some((x) => x.id === 'b_catfish'), 'resting guardian showed up');
+    s.casts++;
+  }
+  assert(E.newRun(s, { width: 100 }).bosses.some((x) => x.id === 'b_catfish'), 'back after its rest');
+  E.settle(s, { items: [], total: 0, depth: 0, boss: { id: 'b_catfish', win: false, gate: false, left: 0.5 } });
+  assert.strictEqual(E.bossRest(s, 'b_catfish'), E.REST_ESCAPE);
+  // a gate guardian that got away is still the wall on the next cast
+  const g = E.newSave(); g.casts = 10; g.nodes.line1 = 2;
+  E.settle(g, { items: [], total: 0, depth: 26, boss: { id: 'b_catfish', win: false, gate: true, left: 0.6 } });
+  assert.strictEqual(E.newRun(g, { width: 100 }).floor, 26);
+});
+
 console.log(`\n${n} tests passed`);

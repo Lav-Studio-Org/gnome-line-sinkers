@@ -215,6 +215,10 @@
         UI.toast(R.url(sp.sprite, sp.shadow ? 'shadow' : ''), t('newSpecies'), KL.name(sp.name));
         A.discover();
       }, 300 + i * 450));
+      if (h.boss && h.boss.win) {
+        const sp = SPECIES[E.SP[h.boss.id]];
+        setTimeout(() => UI.toast(R.url(sp.sprite, sp.shadow ? 'shadow' : ''), t('bossWin'), t('bossRest', { name: KL.name(sp.name), n: E.bossRest(this.save, h.boss.id) })), 1500 + fresh.length * 450);
+      }
       if (bossFirst) {
         const b = E.BOSS_BY[bossFirst];
         setTimeout(() => { UI.banner(t('bossOpen', { z: KL.name(ZONES[b.zone].name) }), `+${b.shells} ${t('shells')}`); UI.bump('shellPill'); A.zone(); }, 300 + fresh.length * 450);

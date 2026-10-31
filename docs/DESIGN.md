@@ -294,10 +294,33 @@ the first real check. Slow players get through on persistence and more line.
 - Saves from before guardians keep every zone they reached: those guardians are marked `free`
   and act like beaten ones.
 - A beaten guardian stays in its arena as a **rematch**: it fights only if the hook touches
-  it on the way down, at full stamina, for its coins (no shells). Rocks around it are cleared
+  it on the way down, at full stamina, for half its coins (no shells), then rests (below). Rocks around it are cleared
   too, so you can choose to dodge it.
 - New seasons keep the gates you opened; the guardians are a one-time key, the season is a
   reset of the economy.
+
+### Rest (rematch cooldown)
+
+Added in v1.8 after playtest feedback: a beaten guardian could be fished again on every cast.
+
+- **Measured.** At the moment a guardian is first beaten it is worth 23 to 33 normal hauls
+  (because the gate held your hauls to shallow water), and on the second win still 3 to 13
+  hauls (sim, skill 0.6). A rematch cast takes about 1.6 normal casts of time, so with no
+  cooldown farming the newest guardian paid 5 to 8 times normal income and beat diving deeper.
+- **Rule.** Counted in casts, like the day and the weather (changing the device clock does
+  nothing, and the Auto Angler counts the same way): caught again, a guardian rests 36 casts,
+  three days at sea (about 8 minutes of play); after it gets away in a rematch, 12 casts (one
+  day). A rematch catch pays half; the first catch pays in full. A gate guardian you have not
+  beaten never rests, because it is the wall and the retry loop ("half the stamina you took
+  stays gone") is the progression.
+- **Why 36 and half pay.** The extra income from a rematch is about
+  `(value_in_hauls - 1.6) / rest`. With half pay (3 to 6 hauls right after unlocking) and 36
+  casts that is about 4 to 12% on top of normal fishing for a few minutes, falling to nothing as
+  your hauls grow. Big enough to be worth a detour, too small to replace diving. A bot that
+  dives at every rematch in the sim ended 45 minutes with between 37% less and 17% more coins
+  than a normal player (3 seeds): farming is no longer the best plan.
+- **Prestige.** Rest is kept across seasons (cast numbers never reset), so a new season is no
+  way to skip it.
 
 ### Reading it on screen
 
@@ -375,3 +398,10 @@ slower.
 - Night and storms darken the upper sea, so the glow of lantern fish and mutations shows.
 - Haul screen: a storm cast lists "Storm +50%" with the other bonuses.
 - Achievements: First Guardian, Sea Conqueror (all five), Storm Sailor (10 storm casts).
+
+## 16. Help pages
+
+A "?" button (top bar, and Help in the menu) opens a sheet of short topics: fishing, line,
+obstacles, guardians, guardian rest, time/weather/bait, mutations, skills, new season, shells,
+fish pen and saves. One topic is open at a time; copy is in `js/help.js` (Indonesian and
+English) and its numbers follow the engine, so update both when a rule changes.

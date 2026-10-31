@@ -23,6 +23,9 @@
       $('bookClose').onclick = () => { KL.Audio.click(); this.closeScreens(); };
       $('setBtn').onclick = () => { KL.Audio.click(); this.openSettings(); };
       $('setClose').onclick = () => { KL.Audio.click(); this.closeSheet('settings'); };
+      $('helpBtn').onclick = () => { KL.Audio.click(); this.openHelp(); };
+      $('helpClose').onclick = () => { KL.Audio.click(); this.closeSheet('help'); };
+      $('menuHelp').onclick = () => { KL.Audio.click(); this.closeMenu(); this.openHelp(); };
       $('zoomIn').onclick = () => this.zoom(1.2);
       $('zoomOut').onclick = () => this.zoom(1 / 1.2);
       $('menuBtn').onclick = () => { KL.Audio.click(); this.openMenu(); };
@@ -46,7 +49,7 @@
           { label: t('menuRefresh'), cls: 'grow', icon: 'refresh', fn: () => { this.g.persist(); this.toast(null, t('menuRefresh'), t('refreshing')); KL.Update.refresh(); } },
         ]);
       };
-      $('scrim').onclick = () => { if (this.open === 'settings') this.closeSheet('settings'); };
+      $('scrim').onclick = () => { if (this.open === 'settings' || this.open === 'help') this.closeSheet(this.open); };
       this.initTreeInput();
       const rot = document.createElement('div');
       rot.className = 'rotate';
@@ -554,6 +557,24 @@
     },
 
     // ---------- settings ----------
+    // ---------- help ----------
+    // one topic open at a time; the first visit opens "How to fish"
+    openHelp(topic) {
+      if (this.g.mode === 'cast') return;
+      const list = KL.HELP[KL.lang] || KL.HELP.en;
+      $('helpList').innerHTML = list.map((h, i) => `<details class="help-item" data-i="${i}"${i === (topic || 0) ? ' open' : ''}>
+        <summary>${ic(h.icon)}<span>${h.title}</span>${ic('plus')}</summary><div class="help-body">${h.body}</div></details>`).join('');
+      $('helpList').querySelectorAll('details').forEach((d) => {
+        d.addEventListener('toggle', () => {
+          if (!d.open) return;
+          KL.Audio.click();
+          $('helpList').querySelectorAll('details').forEach((o) => { if (o !== d) o.open = false; });
+        });
+      });
+      this.openSheet('help');
+      $('helpList').scrollTop = 0;
+    },
+
     openSettings() {
       const s = this.g.save;
       const seg = (key, opts) => `<span class="seg">${opts.map(([v, l]) => `<button data-k="${key}" data-v="${v}" class="${String(s.settings[key]) === String(v) ? 'on' : ''}">${l}</button>`).join('')}</span>`;
