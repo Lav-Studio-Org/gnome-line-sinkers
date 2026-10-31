@@ -402,7 +402,7 @@ slower.
 
 ## 16. Help pages
 
-A "?" button (top bar, and Help in the menu) opens a sheet of short topics: fishing, line,
+Help (in the main menu and in Settings; the top bar has no help button since v1.9.1, it overflowed the phone bar) opens a sheet of short topics: fishing, line,
 obstacles, guardians, guardian rest, time/weather/bait, mutations, skills, new season, shells,
 fish pen and saves. One topic is open at a time; copy is in `js/help.js` (Indonesian and
 English) and its numbers follow the engine, so update both when a rule changes.

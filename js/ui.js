@@ -24,7 +24,6 @@
       $('bookClose').onclick = () => { KL.Audio.click(); this.closeScreens(); };
       $('setBtn').onclick = () => { KL.Audio.click(); this.openSettings(); };
       $('setClose').onclick = () => { KL.Audio.click(); this.closeSheet('settings'); };
-      $('helpBtn').onclick = () => { KL.Audio.click(); this.openHelp(); };
       $('helpClose').onclick = () => { KL.Audio.click(); this.closeSheet('help'); };
       $('menuHelp').onclick = () => { KL.Audio.click(); this.closeMenu(); this.openHelp(); };
       $('zoomIn').onclick = () => this.zoom(1.2);
@@ -590,7 +589,7 @@
         <p class="set-note">${KL.lang === 'id' ? 'Lemparan' : 'Casts'}: ${KL.fmt(s.casts)} · ${KL.lang === 'id' ? 'Total koin' : 'Lifetime coins'}: ${KL.fmt(s.lifetime)} · ${t('seasonN')} ${s.seasons + 1}</p>
         <div class="set-row"><button class="btn" id="setExport">${ic('download')}<span>${t('menuExport')}</span></button><button class="btn" id="setImport">${ic('upload')}<span>${t('menuImport')}</span></button></div>
         <div class="set-row"><button class="btn" id="resetBtn" style="--acc:var(--red)">${ic('trash')}<span>${t('reset')}</span></button></div>
-        <div class="set-row"><button class="btn" id="setCredits">${ic('star')}<span>${t('menuCredits')}</span></button></div>`;
+        <div class="set-row"><button class="btn" id="setHelp">${ic('help')}<span>${t('help')}</span></button><button class="btn" id="setCredits">${ic('star')}<span>${t('menuCredits')}</span></button></div>`;
       $('setList').querySelectorAll('.seg button').forEach((b) => {
         b.onclick = () => {
           const k = b.dataset.k;
@@ -600,6 +599,7 @@
           this.openSettings();
         };
       });
+      $('setHelp').onclick = () => { KL.Audio.click(); this.closeSheet('settings'); this.openHelp(); };
       $('setCredits').onclick = () => { KL.Audio.click(); this.credits(); };
       $('setExport').onclick = () => { KL.Audio.click(); this.g.exportSave(); };
       $('setImport').onclick = () => { KL.Audio.click(); $('importFile').click(); };
