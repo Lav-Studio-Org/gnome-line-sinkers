@@ -278,6 +278,12 @@ test('version.json matches the version in js/update.js', () => {
   const v = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'version.json'), 'utf8')).v;
   const js = fs.readFileSync(path.join(__dirname, '..', 'js', 'update.js'), 'utf8').match(/const VERSION = '([^']+)'/)[1];
   assert.strictEqual(v, js, 'bump both together');
+  // every script and the stylesheet carry ?v=VERSION, so a fresh index.html never runs with
+  // cached JS from the previous release (that mix crashed v1.9.1 on load)
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const refs = [...html.matchAll(/<(?:script src|link rel="stylesheet" href)="([^"]+)"/g)].map((m) => m[1]);
+  assert(refs.length > 10, 'found the script tags');
+  refs.forEach((r) => assert(r.endsWith('?v=' + v), r + ' needs ?v=' + v));
 });
 
 test('save codec round-trips and rejects edited or plain saves', () => {
