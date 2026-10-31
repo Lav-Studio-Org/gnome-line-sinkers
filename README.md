@@ -58,6 +58,10 @@ re-saved encoded; old `.json` save files are no longer accepted. The same two bu
   Instagram and WhatsApp, or the phone's share sheet).
 - Shop with 8 gnome outfits and 8 boats (sampan, jukung, pinisi, mini sub, ghost ship...),
   bought with shells from achievements; the one you wear gives a small perk.
+- Every depth zone has its own scenery: seagrass and mangrove roots in the estuary, corals and
+  anemones on the reef, kelp in the open blue, sea lilies in the twilight, smoking chimneys and
+  tube worms in the trench, glowing crystals and eye stalks in the weird deep, plus a landmark
+  far off (a shipwreck, a passing whale, its bones, a ruined arch). Decoration only.
 - Plays in portrait or landscape (auto, or pinned in Settings), with a bottom bar and bottom
   sheets on phones held upright.
 - Indonesian and English (follows the device language, switch in Settings).
@@ -71,6 +75,7 @@ re-saved encoded; old `.json` save files are no longer accepted. The same two bu
 | `js/engine.js` | pure game logic (no DOM): stats, tree, one cast, economy, seasons |
 | `js/bot.js` | steering bot (Auto Angler, tests, balance) |
 | `js/render.js` | canvas renderer |
+| `js/decor.js` | scenery per zone: wall props, background boulders, far shapes, landmarks |
 | `js/ui.js`, `js/main.js` | interface and game flow |
 | `js/trophies.js` | achievements, activity, share card, outfit and boat shop |
 | `js/global.js`, `server/` | global counter (players and fish caught by everyone), Cloudflare Worker + D1 |

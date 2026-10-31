@@ -414,3 +414,35 @@ Help (in the main menu and in Settings; the top bar has no help button since v1.
 obstacles, guardians, guardian rest, time/weather/bait, mutations, skills, new season, shells,
 fish pen and saves. One topic is open at a time; copy is in `js/help.js` (Indonesian and
 English) and its numbers follow the engine, so update both when a rule changes.
+
+## 17. Scenery per zone (v1.11)
+
+The sea was flat colour bands with grey spires, the same from 0 m to 1,300 m. Each zone now has
+its own look, so the depth reads from the art alone and a new zone feels like a new place.
+All of it lives in `js/decor.js` and is decoration only: it never reads or changes the run, so
+hit tests, the balance sim and the bot are untouched.
+
+| Zone | Wall props | Background | Landmark |
+|---|---|---|---|
+| Estuary | seagrass, mangrove roots, old pier posts, snail shells | reeds, kelp | |
+| Reef | staghorn, brain and fan corals, tube sponges, anemones, starfish, clams with a pearl | coral heads, table corals | |
+| Open Blue | kelp with floats, blue sponges, barnacles, a lost anchor at 148 m | kelp forest | shipwreck (165 m) |
+| Twilight | sea whips, sea lilies, glass sponges, glowing stalks | sea lilies | a whale swimming past (320 m) |
+| Trench | tube worms, smoking chimneys, bones, mussels | chimneys with smoke | the whale's skeleton (760 m) |
+| Weird Deep | glowing crystals, blinking eye stalks, glow mushrooms, fossils | crystal shards, a giant tentacle | ruined arch with runes (1,300 m) |
+
+Layers, back to front: far silhouettes (two parallax layers, as before, now shaped per zone),
+landmarks at half parallax, middle-distance boulders at 0.8 parallax carrying the zone's props
+washed 45% toward the water (they bring the colour to portrait, where the walls are mostly off
+screen), then props on the cliff walls. Glowing bits (stalk tips, crystals, eyes, mushrooms,
+chimney embers) are drawn after the darkness layer, with a slow pulse, so the deep zones come
+alive instead of going black.
+
+Style rules: same art-pixel grid as the sprites, flat colours, no gradients. Props get a 1 px
+outline one shade darker than the water instead of the black ink of fish, so anything with a
+black outline is something you can catch or hit. Prop colours are washed toward the zone water
+(10% in the shallows, about 30% deep down) so they never outshine the fish.
+
+Cost: every prop is baked once per sway frame (6-frame flipbook) into a small canvas, so a frame
+draws about one image per visible prop. Measured render time stayed at about 2 ms a frame
+(844x390 at 2x, before and after).

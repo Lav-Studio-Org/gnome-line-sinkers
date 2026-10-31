@@ -29,6 +29,9 @@ ship to the Play Store as a web payload, so mobile first, portrait and landscape
   they are drawn once, not every frame. Fonts in `style.css` are subset to the characters the UI uses:
   re-subset if you add copy with new non-ASCII characters, then run `python3 tools/fix_digits.py style.css`
   (redraws 2, 5 and 7, which read as S shapes in Pixelify Sans).
+- Scenery per zone (wall props, boulders, far shapes, landmarks) lives in `js/decor.js` (DESIGN.md 17).
+  Decoration only: never read or change the run there. New props: add a painter to `PROPS` and
+  list it in `ZONE_PROPS`; keep the darker-than-water outline so props never look catchable.
 - Release: bump `VERSION` in `js/update.js`, `version.json` and every `?v=` in `index.html` together (a test checks;
   without the `?v=` a fresh index.html can run cached old JS and crash on load). Players on an
   older version get a notice and a menu button (Update game) that re-downloads every file past the

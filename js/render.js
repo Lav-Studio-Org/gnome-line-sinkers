@@ -184,6 +184,7 @@
       this.drawWater(ctx, Y, camY);
       this.drawFar(ctx, Y, camY, midDepth);
       this.drawWalls(ctx, Y, camY);
+      this.drawDecor(ctx, Y, camY);
       this.drawMotes(ctx, camY, dt);
 
       const run = (g.mode === 'cast' || g.mode === 'haul') && g.run ? g.run : g.preview;
@@ -197,6 +198,7 @@
       this.drawBooms(ctx, Y, dt);
       this.drawFlyers(ctx, Y, dt, g);
       this.drawDark(ctx, Y, camY, midDepth, run, g);
+      this.drawGlow(ctx);
       this.drawFront(ctx, Y, camY, midDepth);
       this.drawWeather(ctx, Y, dt, run && run.cond);
 
@@ -320,14 +322,21 @@
       }
     },
 
+    // cliff edges of wall segment i (4 m): screen x where the left wall ends, width of the right wall
+    wallAt(i) {
+      const y = i * 4;
+      const wl = this.ox + Math.max(0, Math.floor(hash(i * 2) * 9 + 6 * Math.sin(i * 0.21)) + Math.min(10, y / 60) - 4);
+      const wr = this.artW - this.ox - this.worldW * PXM + Math.max(0, Math.floor(hash(i * 2 + 1) * 9 + 6 * Math.cos(i * 0.17)) + Math.min(10, y / 60) - 4);
+      return [wl, wr];
+    },
+
     drawWalls(ctx, Y, camY) {
       const seg = 4; // metres per wall segment
       const a = Math.max(0, Math.floor(camY / seg) - 1), b = Math.ceil((camY + this.viewH) / seg) + 1;
       for (let i = a; i < b; i++) {
         const y = i * seg;
         const z = E.zoneAt(y);
-        const wl = this.ox + Math.max(0, Math.floor(hash(i * 2) * 9 + 6 * Math.sin(i * 0.21)) + Math.min(10, y / 60) - 4);
-        const wr = this.artW - this.ox - this.worldW * PXM + Math.max(0, Math.floor(hash(i * 2 + 1) * 9 + 6 * Math.cos(i * 0.17)) + Math.min(10, y / 60) - 4);
+        const [wl, wr] = this.wallAt(i);
         ctx.fillStyle = mix(ZONES[z].deep, '#05070d', 0.45);
         const y0 = Y(y), h = seg * PXM + 1;
         ctx.fillRect(0, y0, Math.max(0, wl), h);
@@ -335,22 +344,6 @@
         ctx.fillStyle = mix(ZONES[z].deep, '#05070d', 0.25);
         ctx.fillRect(Math.max(0, wl), y0 + 2, 2, h - 4);
         ctx.fillRect(this.artW - Math.max(0, wr) - 2, y0 + 2, 2, h - 4);
-        // plants in the shallows, coral on the reef, glowing specks deeper down
-        const hsh = hash(i * 7 + 3);
-        if (z <= 1 && hsh < 0.5) {
-          const left = hsh < 0.25;
-          const bx = left ? wl + 1 : this.artW - wr - 3;
-          ctx.fillStyle = z === 0 ? '#3c7a3a' : '#2f6f5a';
-          for (let k = 0; k < 10; k++) ctx.fillRect(bx + Math.round(Math.sin(this.t * 1.3 + k * 0.5 + i) * (k / 5)), y0 + 14 - k * 2, 2, 2);
-        } else if (z === 1 && hsh < 0.75) {
-          const bx = hsh < 0.62 ? wl : this.artW - wr - 6;
-          ctx.fillStyle = hsh < 0.68 ? '#ff8a6b' : '#f2c14e';
-          ctx.fillRect(bx, y0 + 6, 6, 3); ctx.fillRect(bx + 1, y0 + 3, 2, 3); ctx.fillRect(bx + 4, y0 + 2, 2, 4);
-        } else if (z >= 3 && hsh < 0.3) {
-          ctx.fillStyle = z >= 5 ? '#b78bff' : '#7af0ff';
-          const bx = hsh < 0.15 ? wl + 1 : this.artW - wr - 2;
-          if (Math.sin(this.t * 2 + i) > -0.3) ctx.fillRect(bx, y0 + 7, 1, 1);
-        }
       }
     },
 
@@ -589,40 +582,6 @@
       ctx.fillStyle = '#14121c'; ctx.fillRect(x1 - 7, s - 16, 1, 9); ctx.fillRect(x1 - 9, s - 17, 5, 1);
       ctx.fillRect(x1 - 10, s - 15, 5, 5);
       ctx.fillStyle = Math.sin(this.t * 3) > -0.6 ? '#ffd257' : '#e9ae22'; ctx.fillRect(x1 - 9, s - 14, 3, 3);
-    },
-
-    // distant rock spires and kelp behind the play area, scrolling slower than the camera
-    drawFar(ctx, Y, camY, mid) {
-      const surf = Math.max(0, Y(0));
-      if (surf >= this.artH) return;
-      const z = E.zoneAt(mid);
-      const layers = [[0.35, 0.16, 12], [0.62, 0.3, 8]];
-      ctx.save();
-      ctx.beginPath(); ctx.rect(0, surf, this.artW, this.artH - surf); ctx.clip();
-      for (let L = 0; L < layers.length; L++) {
-        const [p, dark, seg] = layers[L];
-        ctx.fillStyle = mix(ZONES[z].deep, '#05070d', dark);
-        const vy = camY * p;
-        const a = Math.floor(vy / seg) - 2, b = Math.ceil((vy + this.viewH) / seg) + 8;
-        for (let i = a; i < b; i++) {
-          const h1 = hash(i * 13 + L * 101);
-          if (h1 > 0.55) continue;
-          const x = Math.round(hash(i * 7 + L * 31) * this.artW);
-          const base = Math.round((i * seg - vy) * PXM);
-          const tall = Math.round(20 + hash(i * 3 + L) * 70);
-          if (z <= 1 && L === 1 && h1 < 0.3) {
-            // kelp strand
-            for (let k = 0; k < tall; k += 2) ctx.fillRect(x + Math.round(Math.sin(this.t * 0.9 + k * 0.08 + i) * (k / 18)), base - k, 2, 2);
-            continue;
-          }
-          const w = Math.round(6 + hash(i * 5 + L) * 16);
-          for (let k = 0; k < tall; k += 3) {
-            const ww = Math.max(2, Math.round(w * (1 - k / tall) + Math.sin(k * 0.3 + i) * 1.5));
-            ctx.fillRect(x - (ww >> 1), base - k - 3, ww, 3);
-          }
-        }
-      }
-      ctx.restore();
     },
 
     // foreground: dark fronds hugging the screen edges, moving faster than the camera
