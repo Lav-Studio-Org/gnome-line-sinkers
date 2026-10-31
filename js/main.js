@@ -111,8 +111,11 @@
           this.buzz(35);
           break;
         case 'guard':
-          A.guard(); R.burst(run.x, run.y, 6); R.text(run.x, run.y, t('guard'), '#b8a8ff');
+          A.guard(); R.burst(run.x, run.y, 6); R.text(run.x, run.y, t(ev.shield ? 'shield' : 'guard'), ev.shield ? '#8ff7ff' : '#b8a8ff');
           if (ev.o && ev.o.k === 'mine') R.boom(ev.o.x, ev.o.y, true);
+          break;
+        case 'shieldUp':
+          R.text(run.x, run.y, t('shieldUp'), '#8ff7ff');
           break;
         case 'sting':
           A.hit(); R.shake = 0.18; R.burst(run.x, run.y, 6);

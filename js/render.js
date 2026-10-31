@@ -558,6 +558,17 @@
         ctx.strokeStyle = 'rgba(184,168,255,0.8)';
         ctx.strokeRect(hx - 5.5, hy - 8.5, 11, 12);
       }
+      // Bubble Shield: a pixel ring around the hook while it is up
+      if (run.shield > 0 && run.phase === 'down') {
+        const r = 9 + Math.round(Math.sin(this.t * 4));
+        ctx.fillStyle = 'rgba(143,247,255,0.85)';
+        for (let i = 0; i < 20; i++) {
+          const a = (i / 20) * Math.PI * 2;
+          ctx.fillRect(Math.round(hx + 0.5 + Math.cos(a) * r) - 1, Math.round(hy - 2 + Math.sin(a) * r) - 1, 2, 2);
+        }
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.fillRect(Math.round(hx - r * 0.45), Math.round(hy - 2 - r * 0.6), 2, 2);
+      }
       if (Math.random() < 0.25) this.bubbles.push({ x: run.x + (Math.random() - 0.5), y: run.y, vx: 0, vy: -3, t: 0, life: 0.7 });
     },
 

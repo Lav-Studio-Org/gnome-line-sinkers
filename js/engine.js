@@ -113,6 +113,7 @@
       // straight drop; Smooth Steering makes side moves cheaper, down to 0.9x
       side: 1.8 * Math.max(0.5, 1 - 0.5 * sumFx(s, 'steer')),
       guard: sumFx(s, 'guard'),
+      shield: sumFx(s, 'shield'),
       song: sumFx(s, 'song'),
       slow: sumFx(s, 'slow'),
       twin: sumFx(s, 'twin'),
@@ -444,7 +445,7 @@
     return {
       st, r, seed, width, moon, cond, fish, end, keep, obs, bosses, floor: gate ? gate.y : Infinity, fight: null, trophy: null, bossRes: null,
       events: [], t: 0,
-      phase: 'down', x: x0, y: 0, vx: 0, vy: 0, maxY: 0, paid: 0, guard: st.guard,
+      phase: 'down', x: x0, y: 0, vx: 0, vy: 0, maxY: 0, paid: 0, guard: st.guard, shield: st.shield > 0 ? 1 : 0, shieldGap: 0,
       caught: [], lost: 0, cnt: { boom: 0, sting: 0, guard: 0 }, slowLeft: st.slow * 0.7, slowT: 0, timeScale: 1, zone: 0, inNet: null, inCur: null,
     };
   }
@@ -550,11 +551,8 @@
     for (const o of near) {
       if ((o.k !== 'mine' && o.k !== 'urchin') || o.gone) continue;
       if (Math.hypot(run.x - o.x, run.y - o.y) > o.r + HIT_R) continue;
-      if (run.guard > 0 && run.phase === 'down') {
-        run.guard--;
+      if (run.phase === 'down' && absorb(run, { o })) {
         if (o.k === 'mine') o.gone = true;
-        run.cnt.guard++;
-        run.events.push({ t: 'guard', o });
         continue;
       }
       if (o.k === 'urchin') {
@@ -590,6 +588,26 @@
   }
   const lineLeft = (run) => Math.max(0, run.st.line - run.paid);
 
+  // Bubble Shield: one bubble around the hook that takes a hit on the way down, then grows back
+  // after the hook sinks shieldStep metres more. It refills with depth, so it helps most where
+  // the sea is busiest. Hook Guard charges are only spent when the bubble is down.
+  const shieldStep = (lvl) => (lvl > 0 ? Math.round(150 * Math.pow(0.7, lvl - 1)) : Infinity);
+  function absorb(run, what) {
+    if (run.shield > 0) {
+      run.shield = 0; run.shieldGap = 0;
+      run.cnt.guard++;
+      run.events.push(Object.assign({ t: 'guard', shield: true }, what));
+      return true;
+    }
+    if (run.guard > 0) {
+      run.guard--;
+      run.cnt.guard++;
+      run.events.push(Object.assign({ t: 'guard' }, what));
+      return true;
+    }
+    return false;
+  }
+
   function stepDown(run, dt) {
     const st = run.st;
     const fast = run.paid < st.line * st.fall;
@@ -606,6 +624,10 @@
     // a closed guardian is a floor: the line cannot pass its arena
     if (run.y > run.floor) run.y = run.floor;
     payOut(run, x0, y0);
+    if (st.shield > 0 && run.shield === 0) {
+      run.shieldGap += Math.max(0, run.y - y0);
+      if (run.shieldGap >= shieldStep(st.shield)) { run.shield = 1; run.events.push({ t: 'shieldUp' }); }
+    }
     if (run.paid >= st.line) { run.paid = st.line; turn(run, 'bottom'); return; }
     if (run.y >= run.floor) { startFight(run, run.bosses.find((b) => b.gate)); return; }
     if (fast) return;
@@ -619,18 +641,15 @@
       const dy = f.y - run.y;
       if (dy < -f.hh - 1 || dy > f.hh + HIT_R + look * 0.3) continue;
       // look ahead a little for the focus slow-motion
-      if (run.slowLeft > 0 && run.guard <= 0 && run.slowT <= 0 && dy > f.hh && dy < f.hh + look * 0.22 &&
+      if (run.slowLeft > 0 && run.guard <= 0 && run.shield <= 0 && run.slowT <= 0 && dy > f.hh && dy < f.hh + look * 0.22 &&
           Math.abs(f.x + f.vx * 0.2 - run.x) < f.hw + HIT_R) {
         run.slowT = 0.5;
         run.slowLeft -= 0.5;
         run.events.push({ t: 'slow' });
       }
       if (Math.abs(dy) < f.hh + HIT_R && Math.abs(f.x - run.x) < f.hw + HIT_R) {
-        if (run.guard > 0) {
-          run.guard--;
-          run.cnt.guard++;
+        if (absorb(run, { f })) {
           f.st = 2; f.scare = 1.2; f.vx = (f.x < run.x ? -1 : 1) * Math.abs(f.vx);
-          run.events.push({ t: 'guard', f });
         } else {
           // the fish you bump into bites: it is your first catch, and the line turns back up
           run.events.push({ t: 'hit', f });
@@ -992,7 +1011,7 @@
   }
 
   const E = {
-    DATA: D, NODE, SP, PXM, PRESTIGE_DEPTH, rng, newSave, migrate, lv, stats, valueMult, collectionBonus, mastery,
+    DATA: D, NODE, SP, PXM, PRESTIGE_DEPTH, shieldStep, rng, newSave, migrate, lv, stats, valueMult, collectionBonus, mastery,
     zoneAt, nodeCost, nodeState, canBuy, buy, affordableCount, newRun, carryOver, lineLeft, stepRun, haul, settle, fishValue,
     pondRate, offline, prestigeGain, prestige, spriteSize, obsIn,
     BOSS_BY, BAIT_BY, castCond, weatherAt, timeAt, baitOpen, setBait, gateBoss, bossState, bossOpen, bossRest, REST_WIN, REST_ESCAPE, REMATCH_PAY,

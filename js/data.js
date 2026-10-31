@@ -223,6 +223,7 @@
     N('auto', 1, 3, ['guard'], 'robot', 'Nelayan Otomatis', 'Auto Angler', 'Memancing sendiri. Level naik = makin jago.', 'Fishes on its own. More levels = more skill.', 3, 8, 5, 'auto', 1, { t: 1 }),
     N('reel2', 2, 3, ['steer', 'auto'], 'reel', 'Motor Tempel', 'Outboard Motor', 'Tarik ke atas 40% lebih cepat lagi.', 'Reel up another 40% faster.', 5, 0.3, 2.2, 'reel', 0.4, { t: 3 }),
     N('slow', 3, 2, ['steer'], 'timer', 'Fokus', 'Focus', 'Waktu melambat sesaat sebelum menabrak ikan.', 'Time slows just before you hit a fish.', 3, 3, 2.6, 'slow', 1, { t: 2 }),
+    N('shield', 3, 3, ['steer', 'slow', 'reel2'], 'bubble', 'Perisai Gelembung', 'Bubble Shield', 'Gelembung di kail menahan 1 tabrakan saat turun, lalu tumbuh lagi setelah kail turun lebih dalam. Level naik = tumbuh lebih cepat.', 'A bubble on the hook takes 1 hit on the way down, then grows back as the hook sinks deeper. More levels = it grows back sooner.', 5, 3, 2.6, 'shield', 1, { t: 1 }),
 
     // PEARL nodes (outer ring, bought with pearls from a new season)
     N('p_value', -5, -5, ['root'], 'pearl', 'Kilau Mutiara', 'Pearl Shine', 'Tiap mutiara memberi +2% nilai lagi.', 'Each pearl gives another +2% value.', 5, 3, 1.8, 'pearlval', 0.02, { cur: 'pearl' }),

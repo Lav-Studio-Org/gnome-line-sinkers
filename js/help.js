@@ -20,7 +20,8 @@
         <li><b>Bulu babi:</b> tersenggol saat turun membuat kail berbalik naik.</li>
         <li><b>Ranjau:</b> saat turun membuat kail berbalik dan ikan kabur. Saat naik, satu ikan lepas.</li>
         <li><b>Jaring hantu:</b> semua jadi lambat di dalamnya.</li>
-        <li><b>Arus:</b> mendorong kail ke samping. <b>Gelembung:</b> mendorong kail ke atas.</li></ul>` },
+        <li><b>Arus:</b> mendorong kail ke samping. <b>Gelembung:</b> mendorong kail ke atas.</li></ul>
+        <p><b>Perlindungan:</b> skill Perisai Gelembung memberi gelembung di kail yang menahan 1 tabrakan saat turun (ikan, bulu babi, atau ranjau). Gelembungnya tumbuh lagi setelah kail turun lebih dalam, jadi makin dalam makin sering melindungi. Pelindung Kail menambah tembusan sekali pakai dan baru terpakai saat gelembung sedang pecah.</p>` },
       { icon: 'crown', title: 'Penjaga zona', body: `
         <p>Setiap zona dijaga satu ikan besar. Talimu tidak bisa lewat sebelum penjaganya tertangkap. Sampai di arenanya, pertarungan langsung mulai.</p>
         <ul><li><b>Cara menang:</b> arahkan kail ke sisi yang berlawanan dari arah larinya. Tanda panah hijau berarti tarikanmu menahan dia.</li>
@@ -80,7 +81,8 @@
         <li><b>Urchins:</b> brushing one on the way down turns the hook back up.</li>
         <li><b>Mines:</b> on the way down they turn the hook and scare fish. On the way up, a fish falls off.</li>
         <li><b>Ghost nets:</b> everything is slow inside.</li>
-        <li><b>Currents:</b> push the hook sideways. <b>Bubble vents:</b> push it up.</li></ul>` },
+        <li><b>Currents:</b> push the hook sideways. <b>Bubble vents:</b> push it up.</li></ul>
+        <p><b>Protection:</b> the Bubble Shield skill puts a bubble on the hook that takes 1 hit on the way down (fish, urchin or mine). It grows back as the hook sinks deeper, so it protects more often the deeper you go. Hook Guard adds one-time passes that are only spent while the bubble is popped.</p>` },
       { icon: 'crown', title: 'Zone guardians', body: `
         <p>Every zone is guarded by one big fish. Your line cannot pass until it is caught. Reaching its arena starts the fight.</p>
         <ul><li><b>To win:</b> aim the hook on the far side of where it is swimming. A green arrow means your pull is holding it.</li>

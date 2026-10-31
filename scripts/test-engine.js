@@ -88,6 +88,30 @@ test('guard passes through a fish', () => {
   assert.strictEqual(run.guard, 0);
 });
 
+test('bubble shield takes a hit before Hook Guard and grows back with depth', () => {
+  assert.strictEqual(E.newRun(E.newSave(), { seed: 2 }).shield, 0, 'no shield without the skill');
+  const s = E.newSave();
+  s.nodes.reel1 = 1; s.nodes.guard = 1; s.nodes.shield = 1; s.nodes.line1 = 5; s.nodes.line2 = 5;
+  const run = E.newRun(s, { seed: 2, width: 100 });
+  run.bosses = []; run.floor = Infinity; run.obs = [];
+  assert.strictEqual(run.shield, 1);
+  const f = run.fish.find((x) => x.y > 6);
+  f.vx = 0;
+  let popped = false, regrew = false;
+  for (let i = 0; i < 3000 && run.phase === 'down' && !regrew; i++) {
+    E.stepRun(run, 1 / 60, popped ? null : f.x);
+    for (const e of run.events) {
+      if (e.t === 'guard') { assert(e.shield, 'the bubble goes first'); assert.strictEqual(run.guard, 1, 'guard kept'); popped = true; }
+      if (e.t === 'shieldUp') regrew = true;
+    }
+    // keep the path clear after the pop so the regrow is measured on depth alone
+    if (popped) for (const g of run.fish) if (g.st === 0) g.st = 2, g.scare = 99;
+  }
+  assert(popped, 'the bubble took the fish');
+  assert(regrew, 'the bubble grew back after ' + E.shieldStep(1) + ' m');
+  assert(E.shieldStep(5) < E.shieldStep(1));
+});
+
 test('haul and settle add coins, counts and variants', () => {
   const s = E.newSave();
   const run = Bot.playCast(s, 0.8, { seed: 3, width: 100 });

@@ -365,6 +365,7 @@
         case 'line': return `+${KL.fmt(v)} m`;
         case 'cap': return `+${v}`;
         case 'guard': return `${v}`;
+        case 'shield': return level ? `${KL.lang === 'id' ? 'tumbuh tiap' : 'regrows every'} ${E.shieldStep(level)} m` : '-';
         case 'offline': return `+${v} ${t('hours')}`;
         case 'junk': return `x${1 + v}`;
         case 'fall': return `${Math.round(v * 100)}%`;

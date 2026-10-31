@@ -54,6 +54,10 @@ v1.8: beaten guardians rest between rematches (v1.9: 12 casts, 4 after a lost re
 steers around rematches, so this barely moves the pacing; refit (v1.9) `TIER = [50, 750, 1.5e6,
 5.7e8, 2.9e10, 1.5e12]`, zones at 1.2 / 10.3 / 17.8 / 38.9 / 85.0 min. Why 36: DESIGN.md 14, Rest.
 
+v1.10: Bubble Shield (DESIGN.md 6). Prices were not refit, so nothing a player owns changed
+cost; the sim still lands within noise of the targets (zones at 1.2 / 10.4 / 19.2 / 41.5 /
+86.9 min over 3 seeds, the coins spent on the shield roughly cancel the deeper dives).
+
 ## Shells (outfits and boats)
 
 Shells come from achievements (3 / 6 / 12 / 25 / 50 by tier), new species (1), mastery steps

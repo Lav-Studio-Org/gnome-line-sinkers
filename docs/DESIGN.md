@@ -40,7 +40,7 @@ way back, and grow a skill tree until the sea stops making sense.
 | Market (Pasar) | up left | value: +%, x1.5, x2, full crate, bulk, recycling junk |
 | Fish pen (Keramba) | left | idle income, offline hours, ship cat |
 | Luck | down left | mutation chance, rare fish, golden scales, sonar, full moon nights |
-| Control | down right | reel speed, hook guard, steering, Focus slow motion, Auto Angler |
+| Control | down right | reel speed, hook guard, Bubble Shield, steering, Focus slow motion, Auto Angler |
 
 Every node has a tier (which zone it belongs to). Its cost is `TIER[t] * c * g^level`; `TIER`
 is fitted by `node scripts/balance.js --tune --write` so the first season hits these targets
@@ -92,6 +92,14 @@ one every 7-15 m, denser deeper. The mix shifts by zone:
 
 Hook Guard absorbs urchins and mines too. Mines, urchins and vents glow faintly so they are
 readable in the dark zones. The Auto Angler and the balance bot see them.
+
+Bubble Shield (v1.10, players asked for a shield because deep dives felt impossible): one bubble
+on the hook takes a hit on the way down (fish, urchin or mine) and grows back after the hook
+sinks `150 * 0.7^(level-1)` more metres (150 / 105 / 74 / 51 / 36 m). Because it refills with
+depth it scales with the zones where the sea is busiest, unlike Hook Guard's fixed charges,
+which are kept and only spent while the bubble is popped. It sits under Smooth Steering
+(tier 1), so it arrives before Twilight, where a slow player used to hit the wall: at 300 m a
+skill 0 bot turned on a fish in 17 of 40 casts, with the shield 2 of 40 (Weird Deep: 33 to 6).
 
 ## 7. Menu and saves
 
