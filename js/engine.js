@@ -351,10 +351,10 @@
   const BOSS_SCALE = 3.4;
   // A guardian you have met in a rematch leaves its arena for a while (counted in casts, like the
   // day and the weather, so changing the clock does nothing and the forecast stays exact):
-  // 3 days (36 casts) after it is caught, 1 day (12 casts) after it gets away. A gate guardian
+  // 1 day (12 casts) after it is caught, 4 casts after it gets away. A gate guardian
   // never rests; it is the wall. Caught again, it pays half (the first catch pays in full).
   // See docs/DESIGN.md section 14, "Rest".
-  const REST_WIN = 36, REST_ESCAPE = 12, REMATCH_PAY = 0.5;
+  const REST_WIN = 12, REST_ESCAPE = 4, REMATCH_PAY = 0.5;
   // casts until a beaten guardian is back in its arena (0 = it is there)
   const bossRest = (s, id) => Math.max(0, (bossState(s, id).next || 0) - s.casts);
   const TELE = 0.45;          // the warning flash before a guardian's move (s)

@@ -308,17 +308,18 @@ Added in v1.8 after playtest feedback: a beaten guardian could be fished again o
   hauls (sim, skill 0.6). A rematch cast takes about 1.6 normal casts of time, so with no
   cooldown farming the newest guardian paid 5 to 8 times normal income and beat diving deeper.
 - **Rule.** Counted in casts, like the day and the weather (changing the device clock does
-  nothing, and the Auto Angler counts the same way): caught again, a guardian rests 36 casts,
-  three days at sea (about 8 minutes of play); after it gets away in a rematch, 12 casts (one
-  day). A rematch catch pays half; the first catch pays in full. A gate guardian you have not
+  nothing, and the Auto Angler counts the same way): caught again, a guardian rests 12 casts,
+  one day at sea (about 3 minutes of play); after it gets away in a rematch, 4 casts. (v1.8
+  shipped 36 and 12; Assami found that far too long, so v1.9 uses one day.) A rematch catch pays half; the first catch pays in full. A gate guardian you have not
   beaten never rests, because it is the wall and the retry loop ("half the stamina you took
   stays gone") is the progression.
-- **Why 36 and half pay.** The extra income from a rematch is about
-  `(value_in_hauls - 1.6) / rest`. With half pay (3 to 6 hauls right after unlocking) and 36
-  casts that is about 4 to 12% on top of normal fishing for a few minutes, falling to nothing as
-  your hauls grow. Big enough to be worth a detour, too small to replace diving. A bot that
-  dives at every rematch in the sim ended 45 minutes with between 37% less and 17% more coins
-  than a normal player (3 seeds): farming is no longer the best plan.
+- **Why 12 and half pay.** The extra income from a rematch is about
+  `(value_in_hauls - 1.6) / rest`. With half pay (3 to 6 hauls right after unlocking) and 12
+  casts that is about 12 to 35% on top of normal fishing for the first minutes after a new
+  guardian falls, a fair reward for the fight, falling under 5% within a few upgrades as your
+  hauls grow. Big enough to be worth a detour, too small to replace diving. A bot that
+  dives at every rematch in the sim (12-cast rest) ended 45 minutes with between 31% less and
+  1% more coins than a normal player (3 seeds): farming is no longer the best plan.
 - **Prestige.** Rest is kept across seasons (cast numbers never reset), so a new season is no
   way to skip it.
 

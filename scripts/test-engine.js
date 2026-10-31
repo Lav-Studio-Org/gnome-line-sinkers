@@ -377,7 +377,7 @@ test('cast conditions: the forecast is the cast, the first casts are calm, bait 
   assert(st.st.valueMult > calm.st.valueMult * 1.4);
 });
 
-test('a beaten guardian rests 36 casts, 12 after a rematch it lost; a rematch pays half', () => {
+test('a beaten guardian rests 12 casts, 4 after a rematch it lost; a rematch pays half', () => {
   const s = E.newSave(); s.casts = 20; s.nodes.line1 = 5;
   s.bosses.b_catfish = { won: 1 }; s.caught.b_catfish = 1;
   const run = E.newRun(s, { seed: 2, width: 100 });

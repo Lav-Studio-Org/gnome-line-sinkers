@@ -31,8 +31,8 @@
         <li>Tangkapan pertama memberi kerang dan membuka zona berikutnya untuk selamanya.</li></ul>` },
       { icon: 'timer', title: 'Istirahat penjaga', body: `
         <p>Penjaga yang sudah kalah tetap berenang di arenanya untuk tantangan ulang (mahkota ungu). Ia hanya bertarung kalau kail menyentuhnya.</p>
-        <ul><li>Setelah tertangkap lagi, ia istirahat <b>36 lemparan</b> (3 hari di laut).</li>
-        <li>Kalau ia lolos dalam tantangan ulang, ia istirahat <b>12 lemparan</b> (1 hari).</li>
+        <ul><li>Setelah tertangkap lagi, ia istirahat <b>12 lemparan</b> (1 hari di laut).</li>
+        <li>Kalau ia lolos dalam tantangan ulang, ia istirahat <b>4 lemparan</b>.</li>
         <li>Tangkapan ulang dibayar setengah harga. Tangkapan pertama dibayar penuh.</li>
         <li>Penjaga gerbang yang belum kalah tidak pernah istirahat: ia selalu menunggumu.</li></ul>` },
       { icon: 'sun', title: 'Waktu, cuaca, umpan', body: `
@@ -91,8 +91,8 @@
         <li>The first catch pays shells and opens the next zone for good.</li></ul>` },
       { icon: 'timer', title: 'Guardian rest', body: `
         <p>A beaten guardian stays in its arena for rematches (lilac crown). It only fights if the hook touches it.</p>
-        <ul><li>Caught again, it rests for <b>36 casts</b> (3 days at sea).</li>
-        <li>If it gets away in a rematch, it rests for <b>12 casts</b> (1 day).</li>
+        <ul><li>Caught again, it rests for <b>12 casts</b> (1 day at sea).</li>
+        <li>If it gets away in a rematch, it rests for <b>4 casts</b>.</li>
         <li>A rematch catch pays half. The first catch pays in full.</li>
         <li>A gate guardian you have not beaten never rests: it is always waiting.</li></ul>` },
       { icon: 'sun', title: 'Time, weather, bait', body: `

@@ -50,9 +50,9 @@ skill 0.3 beats each gate within 1-3 tries, skill 0.6 and 0.9 mostly on the firs
 slower and aim less steadily than the bot, so expect one or two escapes per gate from 214 m on;
 the stamina carried between tries (half of the damage stays) caps that at three or four.
 
-v1.8: beaten guardians rest 36 casts (12 after a lost rematch) and a rematch pays half. The bot
-steers around rematches, so this barely moves the pacing; refit `TIER = [50, 750, 1.6e6,
-5.4e8, 2.7e10, 1.4e12]`, zones at 1.2 / 9.6 / 17.4 / 40.4 / 85.2 min. Why 36: DESIGN.md 14, Rest.
+v1.8: beaten guardians rest between rematches (v1.9: 12 casts, 4 after a lost rematch) and a rematch pays half. The bot
+steers around rematches, so this barely moves the pacing; refit (v1.9) `TIER = [50, 750, 1.5e6,
+5.7e8, 2.9e10, 1.5e12]`, zones at 1.2 / 10.3 / 17.8 / 38.9 / 85.0 min. Why 36: DESIGN.md 14, Rest.
 
 ## Shells (outfits and boats)
 
