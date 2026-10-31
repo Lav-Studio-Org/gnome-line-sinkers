@@ -101,6 +101,8 @@ Assets/
 
 ## Credits
 
+Made by [Assami Muzaki](https://www.youtube.com/@AssamiMuzaki).
+
 - **80+ Fishing Icons Asset Pack** by Moranovo: https://moranovo.itch.io/80fishing-icons-asset-pack
 - **Pixel Gnome Fishing Pack** (free sample) by PixelGnome: https://pixelgnome.itch.io/fish
 - Deep-sea fish, gnome, boat, obstacles, icons, UI, music and sound by Lav Studio.

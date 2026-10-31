@@ -10,6 +10,7 @@
   const MUT_KEY = ['mutBig', 'mutGold', 'mutPrism', 'mutTitan'];
   const PEARL_LINK = { p_value: 'val4', p_line: 'line5', p_cap: 'cap4', p_auto: 'reel2', p_luck: 'luck2', p_pond: 'pond4' };
   const SP = 104; // px between tree nodes
+  const MAKER_URL = 'https://www.youtube.com/@AssamiMuzaki';
 
   const UI = {
     g: null, sel: 'root', view: { x: 0, y: 0, z: 1 }, open: null,
@@ -638,7 +639,7 @@
     },
     updateNotice() {
       const U = KL.Update;
-      $('menuFoot').textContent = `v${KL.VERSION} · Lav Studio`;
+      $('menuFoot').innerHTML = `v${KL.VERSION} · ${t('madeBy')} <a href="${MAKER_URL}" target="_blank" rel="noopener">Assami Muzaki</a> · ${t('copyright')} ${new Date().getFullYear()}`;
       $('menuUpdate').classList.toggle('hidden', !U.outdated);
       if (U.outdated) $('menuUpdate').textContent = t('updateMenu', { v: U.latest });
       $('menuRefresh').classList.toggle('btn-good', U.outdated);
@@ -646,6 +647,7 @@
     credits() {
       const link = (u, l) => `<a href="${u}" target="_blank" rel="noopener">${l}</a>`;
       this.modal(t('creditsHead'), `<ul class="credits">
+        <li><b>${t('madeBy')} Assami Muzaki</b>${t('creditMaker')} · ${link(MAKER_URL, 'youtube.com/@AssamiMuzaki')}</li>
         <li><b>80+ Fishing Icons Asset Pack</b>Moranovo · ${link('https://moranovo.itch.io/80fishing-icons-asset-pack', 'moranovo.itch.io')}</li>
         <li><b>Pixel Gnome Fishing Pack (free sample)</b>PixelGnome · ${link('https://pixelgnome.itch.io/fish', 'pixelgnome.itch.io/fish')}</li>
         <li><b>Pixelify Sans</b>Stefie Justprince · SIL Open Font License</li>
