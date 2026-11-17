@@ -15,7 +15,8 @@ where goldfish have three eyes.
 
 ![Portrait](docs/screenshots/portrait.png)
 
-Plain HTML + JS, no build step, no dependencies, works offline.
+Plain HTML + JS, no build step, no dependencies, works offline (the Playables SDK script in
+`index.html` is a no-op outside YouTube and simply fails to load when there is no network).
 
 ## Play
 
@@ -77,12 +78,40 @@ re-saved encoded; old `.json` save files are no longer accepted. The same two bu
 | `js/render.js` | canvas renderer |
 | `js/decor.js` | scenery per zone: wall props, background boulders, far shapes, landmarks |
 | `js/ui.js`, `js/main.js` | interface and game flow |
+| `js/platform.js` | YouTube Playables adapter: cloud save, pause, mute, language, score, restrictions |
 | `js/trophies.js` | achievements, activity, share card, outfit and boat shop |
 | `js/global.js`, `server/` | global counter (players and fish caught by everyone), Cloudflare Worker + D1 |
 | `js/audio.js` | music, ambience and SFX (Web Audio) |
 | `img/atlas.png`, `js/atlas.js` | sprite sheet, built by `tools/build_atlas.py` from `Assets/` |
 | `docs/DESIGN.md` | research and design decisions |
 | `docs/BALANCE.md` | pacing targets and simulation results |
+
+## YouTube Playables
+
+The same tree ships as a Playable; nothing is forked. `js/platform.js` (`KL.Platform`) detects
+`ytgame.IN_PLAYABLES_ENV` and owns the platform specific parts:
+
+- `index.html` is the bundle (no build step), so the Playables SDK script stays the first script in
+  it, before every `js/` file.
+- Progress goes through `ytgame.game.saveData` / `loadData` only (browser storage is not allowed
+  there). The cloud copy is the same scrambled `.sav` envelope, so old saves migrate the same way.
+  The save-file buttons and the update button are removed, and Help explains the YouTube save.
+- `onPause` / `onResume` replace the Page Visibility API: pause stops the frame loop, blocks every
+  click and key, parks the audio context, stops the music scheduler and writes the save out.
+- The YouTube mute button wins over the in-game switches, the score sent to YouTube is the deepest
+  line the save shows, the UI language follows `getLanguage()`, orientation is never locked, and
+  there is no share prompt, no clickable link out, no global counter and no external call.
+
+```sh
+node scripts/bundle-playables.js   # dist/playables.zip + the platform limit/rules checks
+node scripts/smoke-playables.js    # boots with a stub SDK and checks every rule above
+                                   # (PW_CHANNEL=msedge runs an installed browser)
+```
+
+Upload that ZIP at https://www.youtube.com/playables_portal (Details -> entry point `index.html`),
+then Test (SDK Test Suite plus the preview links for desktop, mobile web, Android and iOS), Age
+rating (IARC) and Submit for review. Pre-roll ads are applied by YouTube itself and cannot be turned
+off; the game still carries no ads of its own, so the "no multiplier from outside play" rule holds.
 
 ## Checks
 
@@ -92,6 +121,8 @@ node scripts/check-no-emoji.js       # icons come from the SVG sprite, never emo
 node scripts/balance.js              # play a simulated timeline (skill 0.6, 6 h)
 node scripts/balance.js --tune --write   # refit tier costs to the pacing targets
 node scripts/smoke.js http://localhost:8124/ shots   # browser smoke test (Playwright)
+node scripts/bundle-playables.js     # build and validate the Playables upload (dist/playables.zip)
+node scripts/smoke-playables.js      # Playables-mode browser test with a stub SDK
 ```
 
 Rebuild the sprite sheet after changing sprites: `python3 tools/build_atlas.py Assets`

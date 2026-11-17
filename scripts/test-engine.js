@@ -307,7 +307,10 @@ test('version.json matches the version in js/update.js', () => {
   const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
   const refs = [...html.matchAll(/<(?:script src|link rel="stylesheet" href)="([^"]+)"/g)].map((m) => m[1]);
   assert(refs.length > 10, 'found the script tags');
-  refs.forEach((r) => assert(r.endsWith('?v=' + v), r + ' needs ?v=' + v));
+  // the Playables SDK is the one external script and must not be versioned; it is a no-op outside
+  // YouTube and Playables requires it before any game code (js/platform.js wires it up)
+  refs.filter((r) => !/^[a-z]+:|^\/\//i.test(r)).forEach((r) => assert(r.endsWith('?v=' + v), r + ' needs ?v=' + v));
+  assert(html.indexOf('src="https://www.youtube.com/game_api/v1"') < html.indexOf('src="js/'), 'the Playables SDK loads before the game code');
 });
 
 test('save codec round-trips and rejects edited or plain saves', () => {

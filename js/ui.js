@@ -11,6 +11,7 @@
   const PEARL_LINK = { p_value: 'val4', p_line: 'line5', p_cap: 'cap4', p_auto: 'reel2', p_luck: 'luck2', p_pond: 'pond4' };
   const SP = 104; // px between tree nodes
   const MAKER_URL = 'https://www.youtube.com/@AssamiMuzaki';
+  const P = KL.Platform; // Playables switches rows, links and orientation locks off (js/platform.js)
 
   const UI = {
     g: null, sel: 'root', view: { x: 0, y: 0, z: 1 }, open: null,
@@ -38,17 +39,20 @@
           { label: t('menuNew'), cls: 'grow', icon: 'plus', fn: () => { this.g.reset(); this.closeMenu(); } },
         ]);
       };
-      $('menuExport').onclick = () => { KL.Audio.click(); this.g.exportSave(); };
-      $('menuImport').onclick = () => { KL.Audio.click(); $('importFile').click(); };
-      $('importFile').onchange = (e) => { const f = e.target.files[0]; e.target.value = ''; if (f) this.g.importFile(f); };
-      $('menuCredits').onclick = () => { KL.Audio.click(); this.credits(); };
-      $('menuRefresh').onclick = () => {
+      // Playables removes the save-file row and the update button (data-no-playables in index.html)
+      const on = (id, fn) => { const el = $(id); if (el) el.onclick = fn; };
+      on('menuExport', () => { KL.Audio.click(); this.g.exportSave(); });
+      on('menuImport', () => { KL.Audio.click(); $('importFile').click(); });
+      on('menuRefresh', () => {
         KL.Audio.click();
         this.modal(t('menuRefresh'), `<p>${t('refreshNote')}</p>`, [
           { label: t('back'), fn: () => {} },
           { label: t('menuRefresh'), cls: 'grow', icon: 'refresh', fn: () => { this.g.persist(); this.toast(null, t('menuRefresh'), t('refreshing')); KL.Update.refresh(); } },
         ]);
-      };
+      });
+      const imp = $('importFile');
+      if (imp) imp.onchange = (e) => { const f = e.target.files[0]; e.target.value = ''; if (f) this.g.importFile(f); };
+      $('menuCredits').onclick = () => { KL.Audio.click(); this.credits(); };
       $('scrim').onclick = () => { if (this.open === 'settings' || this.open === 'help') this.closeSheet(this.open); };
       this.initTreeInput();
       const rot = document.createElement('div');
@@ -66,7 +70,8 @@
       const port = innerHeight > innerWidth;
       document.body.classList.toggle('port', port);
       const touch = matchMedia('(pointer: coarse)').matches;
-      const wrong = touch && want !== 'auto' && (want === 'port') !== port;
+      // Playables: the game must play in every shape, without a "turn your phone" gate
+      const wrong = !P.inPlayables && touch && want !== 'auto' && (want === 'port') !== port;
       document.body.classList.toggle('need-rotate', wrong);
       if (wrong) {
         $('rotate').innerHTML = `${ic('steer')}<h2>Gnome, Line &amp; Sinker</h2><p>${t(want === 'port' ? 'rotPort' : 'rotLand')}</p>
@@ -79,6 +84,7 @@
       }
     },
     lockOrientation() {
+      if (P.inPlayables) return; // Playables MUST NOT lock device orientation
       const want = this.g.save.settings.orient || 'auto';
       const o = screen.orientation;
       if (!o) return;
@@ -562,7 +568,8 @@
     // one topic open at a time; the first visit opens "How to fish"
     openHelp(topic) {
       if (this.g.mode === 'cast') return;
-      const list = KL.HELP[KL.lang] || KL.HELP.en;
+      // some topics only make sense on one platform: save files and updates vs the YouTube cloud save
+      const list = (KL.HELP[KL.lang] || KL.HELP.en).filter((h) => (P.inPlayables ? !h.dev : !h.onlyPlayables));
       $('helpList').innerHTML = list.map((h, i) => `<details class="help-item" data-i="${i}"${i === (topic || 0) ? ' open' : ''}>
         <summary>${ic(h.icon)}<span>${h.title}</span>${ic('plus')}</summary><div class="help-body">${h.body}</div></details>`).join('');
       $('helpList').querySelectorAll('details').forEach((d) => {
@@ -580,15 +587,17 @@
       const s = this.g.save;
       const seg = (key, opts) => `<span class="seg">${opts.map(([v, l]) => `<button data-k="${key}" data-v="${v}" class="${String(s.settings[key]) === String(v) ? 'on' : ''}">${l}</button>`).join('')}</span>`;
       const onoff = [[true, t('on')], [false, t('off')]];
+      // Playables: the YouTube locale decides the language, orientation is never pinned and there are
+      // no save files, so those three rows are not offered there.
       $('setList').innerHTML = `
         <div class="set-row" style="--acc:var(--accent)">${ic('sound')}<span>${t('sound')}</span>${seg('sound', onoff)}</div>
         <div class="set-row" style="--acc:var(--accent)">${ic('music')}<span>${t('music')}</span>${seg('music', onoff)}</div>
         <div class="set-row" style="--acc:var(--accent)">${ic('vibe')}<span>${t('haptics')}</span>${seg('haptics', onoff)}</div>
-        <div class="set-row" style="--acc:var(--accent)">${ic('globe')}<span>${t('language')}</span>${seg('lang', [['id', 'ID'], ['en', 'EN']])}</div>
+        ${P.inPlayables ? '' : `<div class="set-row" style="--acc:var(--accent)">${ic('globe')}<span>${t('language')}</span>${seg('lang', [['id', 'ID'], ['en', 'EN']])}</div>`}
         ${this.touch ? `<div class="set-row set-wrap" style="--acc:var(--accent)">${ic('hook')}<span>${t('ctrl')}</span>${seg('ctrl', [['stick', t('ctrlStick')], ['touch', t('ctrlTouch')]])}</div>` : ''}
-        <div class="set-row set-wrap" style="--acc:var(--accent)">${ic('steer')}<span>${t('orient')}</span>${seg('orient', [['auto', t('orAuto')], ['land', t('orLand')], ['port', t('orPort')]])}</div>
+        ${P.inPlayables ? '' : `<div class="set-row set-wrap" style="--acc:var(--accent)">${ic('steer')}<span>${t('orient')}</span>${seg('orient', [['auto', t('orAuto')], ['land', t('orLand')], ['port', t('orPort')]])}</div>`}
         <p class="set-note">${KL.lang === 'id' ? 'Lemparan' : 'Casts'}: ${KL.fmt(s.casts)} · ${KL.lang === 'id' ? 'Total koin' : 'Lifetime coins'}: ${KL.fmt(s.lifetime)} · ${t('seasonN')} ${s.seasons + 1}</p>
-        <div class="set-row"><button class="btn" id="setExport">${ic('download')}<span>${t('menuExport')}</span></button><button class="btn" id="setImport">${ic('upload')}<span>${t('menuImport')}</span></button></div>
+        ${P.inPlayables ? '' : `<div class="set-row"><button class="btn" id="setExport">${ic('download')}<span>${t('menuExport')}</span></button><button class="btn" id="setImport">${ic('upload')}<span>${t('menuImport')}</span></button></div>`}
         <div class="set-row"><button class="btn" id="resetBtn" style="--acc:var(--red)">${ic('trash')}<span>${t('reset')}</span></button></div>
         <div class="set-row"><button class="btn" id="setHelp">${ic('help')}<span>${t('help')}</span></button><button class="btn" id="setCredits">${ic('star')}<span>${t('menuCredits')}</span></button></div>`;
       $('setList').querySelectorAll('.seg button').forEach((b) => {
@@ -602,8 +611,8 @@
       });
       $('setHelp').onclick = () => { KL.Audio.click(); this.closeSheet('settings'); this.openHelp(); };
       $('setCredits').onclick = () => { KL.Audio.click(); this.credits(); };
-      $('setExport').onclick = () => { KL.Audio.click(); this.g.exportSave(); };
-      $('setImport').onclick = () => { KL.Audio.click(); $('importFile').click(); };
+      if ($('setExport')) $('setExport').onclick = () => { KL.Audio.click(); this.g.exportSave(); };
+      if ($('setImport')) $('setImport').onclick = () => { KL.Audio.click(); $('importFile').click(); };
       $('resetBtn').onclick = () => this.modal(t('reset'), `<p>${t('resetConfirm')}</p>`, [
         { label: t('back'), fn: () => {} },
         { label: t('reset'), cls: 'grow', icon: 'trash', fn: () => this.g.reset() },
@@ -640,13 +649,16 @@
     },
     updateNotice() {
       const U = KL.Update;
-      $('menuFoot').innerHTML = `v${KL.VERSION} · ${t('madeBy')} <a href="${MAKER_URL}" target="_blank" rel="noopener">Assami Muzaki</a> · ${t('copyright')} ${new Date().getFullYear()}`;
+      const maker = P.inPlayables ? 'Assami Muzaki' : `<a href="${MAKER_URL}" target="_blank" rel="noopener">Assami Muzaki</a>`;
+      $('menuFoot').innerHTML = `v${KL.VERSION} · ${t('madeBy')} ${maker} · ${t('copyright')} ${new Date().getFullYear()}`;
       $('menuUpdate').classList.toggle('hidden', !U.outdated);
       if (U.outdated) $('menuUpdate').textContent = t('updateMenu', { v: U.latest });
-      $('menuRefresh').classList.toggle('btn-good', U.outdated);
+      // the refresh button is removed inside Playables, where a release is a new bundle
+      if ($('menuRefresh')) $('menuRefresh').classList.toggle('btn-good', U.outdated);
     },
+    // Playables: no clickable links out of the game, so credits keep the names as plain text
     credits() {
-      const link = (u, l) => `<a href="${u}" target="_blank" rel="noopener">${l}</a>`;
+      const link = (u, l) => (P.inPlayables ? l : `<a href="${u}" target="_blank" rel="noopener">${l}</a>`);
       this.modal(t('creditsHead'), `<ul class="credits">
         <li><b>${t('madeBy')} Assami Muzaki</b>${t('creditMaker')} · ${link(MAKER_URL, 'youtube.com/@AssamiMuzaki')}</li>
         <li><b>80+ Fishing Icons Asset Pack</b>Moranovo · ${link('https://moranovo.itch.io/80fishing-icons-asset-pack', 'moranovo.itch.io')}</li>

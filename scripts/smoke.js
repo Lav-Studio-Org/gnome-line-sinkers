@@ -1,13 +1,14 @@
 // Browser smoke test: loads the game in landscape phone size, plays casts, opens every screen,
 // fails on any console error. Saves screenshots when a folder is given.
 // Usage: node scripts/smoke.js http://localhost:8124/ [shots-dir]
-const { chromium } = require('playwright');
+// PW_CHANNEL=msedge (or chrome) runs a browser that is already installed instead of the bundled one.
+const { chromium } = require('playwright-core');
 const url = process.argv[2] || 'http://localhost:8124/';
 const shots = process.argv[3];
 const fs = require('fs');
 
 (async () => {
-  const browser = await chromium.launch();
+  const browser = await chromium.launch({ channel: process.env.PW_CHANNEL || undefined });
   const ctx = await browser.newContext({ viewport: { width: 844, height: 390 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true });
   // keep the global counter offline: answer it locally
   const fakeCounter = (c) => c.route('**/*.workers.dev/**', (r) => r.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: '{"players":3,"fish":120,"metres":900,"casts":40}' }));

@@ -13,6 +13,7 @@
   const TIER_HEX = ['#cdb995', '#8fd3e8', '#b8a8ff', '#f5b82e', '#ff6b3d'];
   // public address of the game, for share texts (empty until it is hosted)
   const SHARE_URL = 'https://gnome.assamimuzaki.work/';
+  const P = KL.Platform; // Playables: no share card (js/platform.js)
 
   const fishVar = (mut, sp) => (mut === 1 ? 'gold' : mut === 2 ? 'prism2' : sp && sp.shadow ? 'shadow' : '');
   const inl = (name, acc) => ic(name).replace('class="ic"', `class="ic" style="display:inline;width:1em;height:1em;vertical-align:-2px;--acc:${acc}"`);
@@ -54,7 +55,8 @@
       this.railButtons(t('trophy'), [
         { id: 'ach', icon: 'trophy', label: t('achievements'), small: `${got}/${ACH.length}` },
         { id: 'stats', icon: 'chart', label: t('activity') },
-        { id: 'share', icon: 'share', label: t('share') },
+        // Playables forbids in-game sharing prompts, so the share card has no tab there
+        ...(P.inPlayables ? [] : [{ id: 'share', icon: 'share', label: t('share') }]),
       ], this.trophyTab, (id) => { this.trophyTab = id; this.renderTrophy(); });
       const grid = $('bookGrid');
       grid.className = 'book-grid';
@@ -178,6 +180,7 @@
 
     // ---------- share card ----------
     renderShare(grid) {
+      if (P.inPlayables) { this.trophyTab = 'ach'; this.renderTrophy(); return; } // no sharing on Playables
       $('bookTitle').textContent = t('share');
       $('bookSub').textContent = t('shareSub');
       grid.className = 'share-wrap';

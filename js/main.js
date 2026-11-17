@@ -8,22 +8,34 @@
   const t = (k, v) => KL.t(k, v);
 
   const C = KL.SaveCodec;
+  const P = KL.Platform; // YouTube Playables: cloud save, pause, mute, language (js/platform.js)
   const ENC = KEY + '.enc'; // set once the browser copy is encoded; plain JSON after that is an edit
 
+  function adopt(s) {
+    if (!s || typeof s !== 'object' || typeof s.coins !== 'number' || !s.nodes || typeof s.nodes !== 'object') return null;
+    return E.migrate(s);
+  }
+
+  // the browser copy (web, and the Play Store app): scrambled JSON in localStorage
   function load() {
     try {
       const raw = localStorage.getItem(KEY);
       if (raw) {
-        if (C.isEncoded(raw)) { const s = C.decode(raw); if (s) return E.migrate(s); }
-        else if (!localStorage.getItem(ENC)) return E.migrate(JSON.parse(raw)); // save from before encoding
+        if (C.isEncoded(raw)) { const s = adopt(C.decode(raw)); if (s) return s; }
+        else if (!localStorage.getItem(ENC)) return adopt(JSON.parse(raw)); // save from before encoding
         localStorage.setItem(KEY + '.bad', raw); // changed by hand: keep it aside, start fresh
       }
     } catch (e) { /* fresh start */ }
     return E.newSave();
   }
 
+  // the cloud copy (Playables) uses the same envelope as a .sav file, so old saves migrate the same way
+  const fromCloud = (str) => { const obj = C.decode(str); return adopt(obj && obj.save ? obj.save : obj); };
+  const toCloud = (save) => C.encode({ game: 'gnome-line-sinker', v: 2, at: new Date().toISOString(), save });
+  const guessLang = () => ((navigator.language || 'en').toLowerCase().startsWith('id') ? 'id' : 'en');
+
   const g = {
-    save: load(), stats: null, mode: 'dock', run: null, preview: null, haul: null,
+    save: P.inPlayables ? E.newSave() : load(), stats: null, mode: 'dock', run: null, preview: null, haul: null,
     pondRate: 0, moon: false, sonar: false, cat: false, safeL: 0,
     target: null, manualT: 0, throw: null, lastX: null, pointer: { on: false, id: null, sx: 0, sy: 0 }, welcomed: false, keys: new Set(), lastSave: 0, autoT: 0, rateT: 0, landed: 0,
     zoneSeen: 0,
@@ -34,13 +46,18 @@
       this.sonar = this.stats.sonar;
       this.cat = E.lv(this.save, 'cat') > 0;
     },
+    // Playables: the only allowed store is the YouTube cloud save. Elsewhere: localStorage.
     persist() {
       this.save.lastSeen = Date.now();
-      try { localStorage.setItem(KEY, C.encode(this.save)); localStorage.setItem(ENC, '1'); } catch (e) { /* storage full or blocked */ }
+      if (P.inPlayables) P.save(toCloud(this.save));
+      else try { localStorage.setItem(KEY, C.encode(this.save)); localStorage.setItem(ENC, '1'); } catch (e) { /* storage full or blocked */ }
+      P.score(this.save.bestEver);
     },
     applySettings() {
       const st = this.save.settings;
-      KL.setLang(st.lang || ((navigator.language || 'en').toLowerCase().startsWith('id') ? 'id' : 'en'));
+      // Playables: the YouTube UI locale decides and it may change at any time, so the saved choice
+      // and navigator.language (both disallowed there) stay out of it.
+      KL.setLang(P.inPlayables ? P.lang : st.lang || guessLang());
       A.configure({ sound: st.sound, music: st.music });
       UI.translate();
       UI.hud();
@@ -263,7 +280,7 @@
     onScreenClosed() { this.refresh(); UI.hud(); if (this.save.auto && this.stats.auto && this.mode === 'dock') this.autoT = 1; },
     reset() {
       const settings = this.save.settings;
-      try { localStorage.removeItem(KEY); } catch (e) { /* ignore */ }
+      if (!P.inPlayables) try { localStorage.removeItem(KEY); } catch (e) { /* ignore */ } // Playables: the cloud copy is overwritten by the fresh save below
       this.save = E.newSave();
       this.save.settings = settings;
       this.zoneSeen = 0;
@@ -272,7 +289,10 @@
     },
 
     // ---------- save files ----------
+    // Playables has no save files: progress sits in the YouTube account and the buttons are removed
+    // there (index.html marks them data-no-playables).
     exportSave() {
+      if (P.inPlayables) return;
       this.persist();
       const d = new Date();
       const stamp = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}-${String(d.getHours()).padStart(2, '0')}${String(d.getMinutes()).padStart(2, '0')}`;
@@ -286,6 +306,7 @@
       UI.toast(null, t('menuExport'), t('exportOk'));
     },
     importFile(file) {
+      if (P.inPlayables) return;
       const bad = () => { A.deny(); UI.toast(null, t('menuImport'), t('importBad')); };
       file.text().then((txt) => {
         const obj = C.decode(txt);
@@ -340,6 +361,7 @@
   const cv = document.getElementById('game');
   const toWorld = (cx, cy) => ({ x: (cx * R.dpr / R.S - R.ox) / E.PXM, y: R.camY + cy * R.dpr / R.S / E.PXM });
   cv.addEventListener('pointerdown', (e) => {
+    if (P.paused) return;
     if (g.mode === 'dock') {
       if (UI.open || UI.menuOpen) return;
       const w = toWorld(e.clientX, e.clientY);
@@ -380,7 +402,7 @@
   };
   const stickEnd = (e) => { if (g.stick.id === e.pointerId) g.stickReset(); };
   stickEl.addEventListener('pointerdown', (e) => {
-    if (g.mode !== 'cast') return;
+    if (P.paused || g.mode !== 'cast') return;
     e.preventDefault();
     g.stick.on = true; g.stick.id = e.pointerId; g.manualT = 1.5;
     try { stickEl.setPointerCapture(e.pointerId); } catch (err) { /* synthetic pointer */ }
@@ -391,6 +413,7 @@
   stickEl.addEventListener('pointerup', stickEnd);
   stickEl.addEventListener('pointercancel', stickEnd);
   addEventListener('keydown', (e) => {
+    if (P.paused) return;
     g.keys.add(e.key.toLowerCase());
     if (e.key === ' ' || e.key === 'Enter') {
       if (g.mode === 'dock' && !UI.open && !UI.menuOpen) { e.preventDefault(); g.cast(); } else if (g.mode === 'haul' && UI.open === 'haul') { e.preventDefault(); g.take(1); }
@@ -398,7 +421,7 @@
     if (e.key === 'Escape' && UI.menuOpen && !UI.open) { UI.closeMenu(); return; }
     if (e.key === 'Escape') { if (UI.open === 'tree' || UI.open === 'book') UI.closeScreens(); else if (UI.open === 'settings') UI.closeSheet('settings'); }
   });
-  addEventListener('keyup', (e) => g.keys.delete(e.key.toLowerCase()));
+  addEventListener('keyup', (e) => { if (P.paused) return; g.keys.delete(e.key.toLowerCase()); });
   document.getElementById('castBtn').onclick = () => g.cast();
   document.getElementById('autoBtn').onclick = () => {
     g.save.auto = !g.save.auto;
@@ -407,12 +430,22 @@
     if (g.save.auto && g.mode === 'dock') g.autoT = 0.6;
     UI.hud(); g.persist();
   };
-  document.addEventListener('visibilitychange', () => { if (document.hidden) g.persist(); });
+  // Playables forbids the Page Visibility API; the SDK onPause/onResume callbacks cover it there.
+  if (!P.inPlayables) document.addEventListener('visibilitychange', () => { if (document.hidden) g.persist(); });
   addEventListener('pagehide', () => g.persist());
 
+  // Pause means pause: write the newest state out, then drop every input the game was holding.
+  P.onPause(() => {
+    g.persist();
+    g.keys.clear();
+    g.pointer = { on: false, id: null, sx: 0, sy: 0 };
+    if (g.stickReset) g.stickReset();
+  });
+
   // ---------- loop ----------
-  let last = 0, hudT = 0;
+  let last = 0, hudT = 0, rafId = 0;
   function loop(now) {
+    if (P.paused) { rafId = 0; return; } // Playables pause: no frame, and no frame scheduled
     const dt = Math.min(0.05, (now - last) / 1000 || 0);
     last = now;
     const s = g.save;
@@ -479,14 +512,24 @@
     hudT -= dt;
     if (hudT <= 0) { hudT = 0.12; UI.hud(); }
     if (now - g.lastSave > 5000) { g.lastSave = now; if (g.mode !== 'cast') g.achCheck(); g.persist(); if (KL.Global) KL.Global.tick(g.save); }
-    requestAnimationFrame(loop);
+    rafId = requestAnimationFrame(loop);
   }
 
+  // the SDK's resume callback restarts the loop its pause callback stopped
+  P.onResume(() => {
+    g.keys.clear();
+    if (!rafId && !P.paused) rafId = requestAnimationFrame((n) => { last = n; loop(n); });
+  });
+
   // ---------- boot ----------
+  P.firstFrame(); // the start menu is painted already, so YouTube can drop its loading spinner
   const img = new Image();
   img.src = KL.ATLAS_PNG || 'img/atlas.png';
   const fonts = document.fonts ? document.fonts.load('600 16px Pixelify').catch(() => {}) : Promise.resolve();
-  Promise.all([new Promise((r) => { img.onload = r; img.onerror = r; }), fonts]).then(() => {
+  // The cloud save has to be in before anything is written back: the SDK rejects saves that race it.
+  Promise.all([new Promise((r) => { img.onload = r; img.onerror = r; }), fonts, P.load()]).then(([, , cloud]) => {
+    const kept = cloud ? fromCloud(cloud) : null;
+    if (kept) g.save = kept;
     R.init(cv, img);
     g.safeL = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--safe-l')) || 0;
     g.refresh();
@@ -508,7 +551,9 @@
     E.checkAch(g.save);
     if (g.save.seenAch == null) g.save.seenAch = 0;
     g.persist();
-    requestAnimationFrame((n) => { last = n; loop(n); });
+    P.score(g.save.bestEver); // what YouTube shows as the best score is the number this save shows
+    P.gameReady(); // the menu answers input from here on: UI.init above bound every button
+    rafId = requestAnimationFrame((n) => { last = n; loop(n); });
   });
 
   // test hook (smoke tests and screenshots)

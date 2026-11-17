@@ -9,11 +9,24 @@
 
   const A = {
     ac: null, master: null, sfx: null, music: null, amb: null, verb: null, mFilter: null, ambLo: null,
-    soundOn: true, musicOn: true, ducked: false, depth: 0,
+    soundOn: true, musicOn: true, ducked: false, depth: 0, systemMuted: false,
 
+    // Playables: the YouTube mute button wins over the in-game switches. When it is on, nothing is
+    // output and the context is parked; unmuting resumes whatever the player had switched on.
+    setSystemMuted(on) {
+      this.systemMuted = !!on;
+      if (on) this.suspend();
+      else if (this.ac) this.unlock();
+      this.apply();
+    },
+    suspend() {
+      if (!this.ac) return;
+      try { if (this.ac.state === 'running') this.ac.suspend(); } catch (e) { /* already parked */ }
+    },
     unlock() {
       if (!this.ac) this.build();
       if (!this.ac) return;
+      if (this.systemMuted) { this.suspend(); return; }
       if (this.ac.state === 'suspended' || this.ac.state === 'interrupted') this.ac.resume().catch(() => {});
       Music.start();
     },
@@ -59,10 +72,10 @@
     apply() {
       if (!this.ac) return;
       const t = this.ac.currentTime;
-      const s = this.soundOn && !this.ducked;
+      const s = this.soundOn && !this.ducked && !this.systemMuted;
       this.sfx.gain.setTargetAtTime(s ? 0.7 : 0, t, 0.03);
       this.amb.gain.setTargetAtTime(s ? 0.55 : 0, t, 0.3);
-      this.music.gain.setTargetAtTime(this.musicOn && !this.ducked ? 0.42 : 0, t, 0.2);
+      this.music.gain.setTargetAtTime(this.musicOn && !this.ducked && !this.systemMuted ? 0.42 : 0, t, 0.2);
     },
     // 0 at the surface, 1 in the deepest zone: muffles the music and swaps waves for rumble
     setDepth(d01) {
@@ -153,7 +166,7 @@
 
     // ---------- SFX ----------
     now() { return this.ac ? this.ac.currentTime + 0.005 : 0; },
-    ok() { return this.ac && this.soundOn && !this.ducked; },
+    ok() { return this.ac && this.soundOn && !this.ducked && !this.systemMuted; },
     click() { if (!this.ok()) return; const t = this.now(); this.osc('triangle', 1400, t, 0.03, 0.08, this.sfx); this.noise(t, 0.02, 0.05, this.sfx, { f: 3000 }); },
     cast() {
       if (!this.ok()) return;
@@ -303,7 +316,14 @@
 
   KL.Audio = A;
   KL.Music = Music;
+  // YouTube mute/pause, and the pause callback must take the scheduler down with it: a suspended
+  // context freezes currentTime, and a running scheduler would pile notes onto the resume.
+  KL.Platform.onAudioChange((on) => A.setSystemMuted(!on));
+  KL.Platform.onPause(() => { Music.stop(); A.suspend(); });
+  KL.Platform.onResume(() => { A.recover(); Music.start(); });
+  A.setSystemMuted(!KL.Platform.audioEnabled);
   document.addEventListener('pointerdown', () => A.unlock(), { capture: true, passive: true });
   document.addEventListener('keydown', () => A.unlock(), { capture: true });
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) { A.recover(); Music.resync(); } });
+  // Playables forbids the Page Visibility API; its own pause/resume callbacks cover the same ground.
+  if (!KL.Platform.inPlayables) document.addEventListener('visibilitychange', () => { if (!document.hidden) { A.recover(); Music.resync(); } });
 })(this);

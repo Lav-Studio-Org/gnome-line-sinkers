@@ -15,7 +15,7 @@
 
   const G = {
     data: null, at: 0, next: Date.now() + FIRST, busy: false,
-    get enabled() { return !!GLOBAL_URL && navigator.onLine !== false; },
+    get enabled() { return !KL.Platform.inPlayables && !!GLOBAL_URL && navigator.onLine !== false; },
     ensure(s) {
       if (!s.gid) s.gid = rid();
       if (!s.gsent) s.gsent = { fish: 0, casts: 0, junk: 0, titan: 0 };

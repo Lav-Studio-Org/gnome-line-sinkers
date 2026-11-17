@@ -36,3 +36,14 @@ ship to the Play Store as a web payload, so mobile first, portrait and landscape
   without the `?v=` a fresh index.html can run cached old JS and crash on load). Players on an
   older version get a notice and a menu button (Update game) that re-downloads every file past the
   browser cache and reloads; the save is never touched.
+- YouTube Playables build: same tree, no fork. `js/platform.js` (`KL.Platform`) detects
+  `ytgame.IN_PLAYABLES_ENV` and owns everything platform specific: progress through
+  `ytgame.game.saveData`/`loadData` (localStorage and save files are forbidden there, and the cloud
+  copy is a `.sav` envelope), `onPause`/`onResume` instead of the Page Visibility API, the YouTube
+  mute button over the in-game switches, `getLanguage()` for the UI language, `sendScore` with the
+  best depth, plus the restrictions (no orientation lock, no share prompt, no clickable link out, no
+  external call, `data-no-playables` nodes removed on boot). The SDK script
+  `https://www.youtube.com/game_api/v1` in `index.html` must stay before every `js/` file. Ship with
+  `node scripts/bundle-playables.js`, prove it with `node scripts/smoke-playables.js`.
+- Playables applies pre-roll ads itself and cannot switch them off. The game still carries no ad
+  code, so the balance rule (no multiplier from outside play) keeps holding there.

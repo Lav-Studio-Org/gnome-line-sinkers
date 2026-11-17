@@ -13,7 +13,7 @@
   --paper: #f3ead7;
   --paper-2: #e6d8bb;
   --paper-3: #cdb995;
-  --muted: #776d63;
+  --muted: #635a50; /* secondary text: >=4.5:1 on --paper and --paper-2 (Playables text legibility) */
   --accent: #ff6b3d;
   --accent-2: #ffa46b;
   --gold: #f5b82e;

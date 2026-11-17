@@ -1,5 +1,7 @@
 // Help pages: how the game works, in plain words. Opened from the "?" button and the menu.
 // Numbers here must follow the rules in engine.js and data.js; docs/DESIGN.md has the why.
+// `dev: true` shows a topic only outside Playables (save files, updates); `onlyPlayables: true`
+// shows it only inside Playables (js/ui.js openHelp filters with KL.Platform).
 (function (root) {
   'use strict';
   const KL = (root.KL = root.KL || {});
@@ -60,10 +62,12 @@
         <li>Kerang membeli pakaian gnome dan kapal di Toko. Masing-masing punya bonus selama dipakai.</li></ul>` },
       { icon: 'pond', title: 'Keramba dan offline', body: `
         <p>Skill Keramba membuat koleksi ikanmu menghasilkan koin terus, juga saat game ditutup (awalnya sampai 3 jam).</p>` },
-      { icon: 'download', title: 'Simpanan dan update', body: `
+      { icon: 'download', title: 'Simpanan dan update', dev: true, body: `
         <ul><li>Game tersimpan otomatis di perangkat ini.</li>
         <li>Menu > Simpan file membuat file .sav untuk dipindah ke perangkat lain (Menu > Muat file).</li>
         <li>Kalau ada versi baru, Menu > Perbarui game mengunduh ulang game tanpa menghapus progres.</li></ul>` },
+      { icon: 'download', title: 'Simpanan', onlyPlayables: true, body: `
+        <p>Progresmu disimpan di akun YouTube-mu, jadi kamu bisa lanjut dari perangkat lain. Game juga menyimpan sendiri setiap kali ada kemajuan.</p>` },
     ],
     en: [
       { icon: 'hook', title: 'How to fish', body: `
@@ -121,10 +125,12 @@
         <li>Shells buy gnome outfits and boats in the Shop. Each one has a perk while you use it.</li></ul>` },
       { icon: 'pond', title: 'Fish pen and offline', body: `
         <p>The Fish Pen skill makes your collection earn coins all the time, even while the game is closed (up to 3 hours at first).</p>` },
-      { icon: 'download', title: 'Saves and updates', body: `
+      { icon: 'download', title: 'Saves and updates', dev: true, body: `
         <ul><li>The game saves itself on this device.</li>
         <li>Menu > Save file makes a .sav file to move to another device (Menu > Load file).</li>
         <li>When a new version is out, Menu > Update game downloads it again without touching your progress.</li></ul>` },
+      { icon: 'download', title: 'Saves', onlyPlayables: true, body: `
+        <p>Your progress is kept in your YouTube account, so you can carry on from another device. The game also saves itself whenever you make progress.</p>` },
     ],
   };
 })(this);

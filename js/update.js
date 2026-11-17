@@ -5,7 +5,7 @@
 (function (root) {
   'use strict';
   const KL = root.KL;
-  const VERSION = '1.11'; // release: bump this, version.json and the ?v= in index.html together
+  const VERSION = '1.12'; // release: bump this, version.json and the ?v= in index.html together
   KL.VERSION = VERSION;
 
   const files = () => {
@@ -17,7 +17,10 @@
   const U = {
     latest: null,
     outdated: false,
+    // Playables forbids external calls and ships a release as one bundle, so there is nothing for the
+    // game to check or re-download there: KL.Platform reports the environment.
     async check() {
+      if (KL.Platform.inPlayables) return false;
       try {
         const r = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
         if (!r.ok) return false;
@@ -30,6 +33,7 @@
       } catch (e) { return false; } // offline, or file:// in the app shell
     },
     async refresh() {
+      if (KL.Platform.inPlayables) return;
       try { if (root.caches) for (const k of await caches.keys()) await caches.delete(k); } catch (e) { /* no Cache Storage */ }
       try {
         if (navigator.serviceWorker) for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister();
@@ -38,6 +42,7 @@
       location.replace(location.pathname + '?u=' + Date.now() + location.hash);
     },
     start() {
+      if (KL.Platform.inPlayables) return;
       setTimeout(() => this.check(), 4000);
       setInterval(() => { if (!this.outdated) this.check(); }, 10 * 60 * 1000);
       // drop the cache-busting query from the address bar after an update
